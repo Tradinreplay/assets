@@ -3853,6 +3853,8 @@ function saveMarker(e) {
                 // 重新添加標記到地圖
                 addMarkerToMap(marker);
             }
+            // 同步到資料庫（更新）
+            try { if (window.syncMarkerUpsert) window.syncMarkerUpsert(marker); } catch (e) {}
         }
     } else {
         // 新增標記
@@ -3884,6 +3886,8 @@ function saveMarker(e) {
         
         // 在地圖上添加標記
         addMarkerToMap(marker);
+        // 同步到資料庫（新增）
+        try { if (window.syncMarkerUpsert) window.syncMarkerUpsert(marker); } catch (e) {}
     }
     
     updateMarkersList();
@@ -4424,6 +4428,8 @@ function deleteCurrentMarker() {
             
             // 從全域陣列移除
             markers = markers.filter(m => m.id !== markerId);
+            // 同步到資料庫（刪除）
+            try { if (window.syncMarkerDelete) window.syncMarkerDelete(markerId); } catch (e) {}
         }
         
         updateMarkersList();

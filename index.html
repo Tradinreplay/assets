@@ -96,10 +96,32 @@
             <span class="close">&times;</span>
             <h2>使用者入口</h2>
             <div class="tab-buttons" style="display:flex; gap:8px; margin-bottom:12px;">
+                <button id="tabLogin" class="secondary-btn">一般使用者</button>
                 <button id="tabAdmin" class="secondary-btn">管理者</button>
             </div>
 
-            <!-- 使用者登入已移除 -->
+            <!-- 一般使用者：免註冊，一次登入 -->
+            <form id="loginForm" style="display:block;">
+                <label for="loginEmail">Email（首次登入自動建立帳號）</label>
+                <input type="email" id="loginEmail" placeholder="請輸入Email" required>
+                <label for="loginPassword">密碼（首次登入可自訂）</label>
+                <input type="password" id="loginPassword" placeholder="請輸入密碼" required>
+                <button type="submit" class="primary-btn" style="margin-top:8px;">登入</button>
+                <button type="button" id="userLogoutBtn" class="secondary-btn" style="margin-top:8px;">登出</button>
+                <div id="loginResult" class="status-display" style="margin-top:6px;">尚未登入</div>
+                <div id="shareSection" style="display:none; margin-top:12px;">
+                    <h3>分享定位 / 路線</h3>
+                    <label for="shareRecipient">接收者 Email</label>
+                    <input type="email" id="shareRecipient" placeholder="輸入接收者 Email">
+                    <label for="shareRouteJson">路線 JSON（選填）</label>
+                    <textarea id="shareRouteJson" rows="3" placeholder='{"points":[[lat,lng],...]}'></textarea>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button id="shareLocationBtn" class="primary-btn" type="button">分享目前定位</button>
+                        <button id="shareRouteBtn" class="secondary-btn" type="button">分享路線JSON</button>
+                    </div>
+                    <div id="shareResult" class="status-display" style="margin-top:6px;"></div>
+                </div>
+            </form>
 
             <!-- 管理者面板：需登入後才可即時監看 -->
             <form id="adminForm" style="display:none;">
@@ -118,6 +140,17 @@
                     <h3>目前使用者定位（即時）</h3>
                     <div id="adminLocationsList" class="markers-list" style="max-height:180px; overflow:auto;"></div>
                     <small>管理者登入後可於地圖與清單即時查看所有使用者最新位置。</small>
+
+                    <hr style="margin:12px 0;">
+                    <h3>使用者標註資料（查詢）</h3>
+                    <div class="flex-row" style="gap:8px; align-items:flex-end;">
+                        <div style="flex:1;">
+                            <label for="adminMarkersEmail">目標使用者 Email</label>
+                            <input type="email" id="adminMarkersEmail" placeholder="輸入使用者 email">
+                        </div>
+                        <button id="loadAdminMarkersBtn" type="button" class="secondary-btn">讀取標註</button>
+                    </div>
+                    <div id="adminMarkersList" class="markers-list" style="max-height:180px; overflow:auto; margin-top:8px;"></div>
                 </div>
             </form>
         </div>

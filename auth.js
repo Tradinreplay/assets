@@ -61,13 +61,24 @@ async function handleLogin(e) {
   const resultEl = document.getElementById('loginResult');
   resultEl.textContent = '登入中...';
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    // 先嘗試登入，失敗則自動註冊再登入（免註冊，一次登入）
+    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      const signup = await supabase.auth.signUp({ email, password });
+      if (signup.error) throw signup.error;
+      ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+      if (error) throw error;
+    }
     const session = data?.session;
     const profile = await ensureProfileForCurrentUser(session);
     // 取消核准判斷，登入後即可使用分享功能
     resultEl.textContent = '已登入，可使用分享功能。';
     document.getElementById('shareSection').style.display = 'block';
+    // 本地端紀錄一次登入資訊
+    try {
+      localStorage.setItem('app_user_email', session?.user?.email || email);
+      localStorage.setItem('app_user_id', session?.user?.id || '');
+    } catch (e) {}
   } catch (err) {
     console.error(err);
     resultEl.textContent = '登入失敗：' + (err?.message || '未知錯誤');
@@ -222,11 +233,28 @@ function bindAuthUI() {
     const closeEl = modal.querySelector('.close');
     if (closeEl) closeEl.addEventListener('click', hideAuthModal);
   }
+  const tabLogin = document.getElementById('tabLogin');
+  if (tabLogin) tabLogin.addEventListener('click', () => switchTab('login'));
   const tabAdmin = document.getElementById('tabAdmin');
   if (tabAdmin) tabAdmin.addEventListener('click', () => switchTab('admin'));
   // 管理者需登入：綁定登入事件，成功後才顯示即時監看
   const adminForm = document.getElementById('adminForm');
   if (adminForm) adminForm.addEventListener('submit', handleAdminLogin);
+
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) loginForm.addEventListener('submit', handleLogin);
+  const userLogoutBtn = document.getElementById('userLogoutBtn');
+  if (userLogoutBtn) userLogoutBtn.addEventListener('click', async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('app_user_email');
+      localStorage.removeItem('app_user_id');
+    } catch (e) {}
+    const resultEl = document.getElementById('loginResult');
+    if (resultEl) resultEl.textContent = '已登出';
+    const shareSec = document.getElementById('shareSection');
+    if (shareSec) shareSec.style.display = 'none';
+  });
 
   const shareLocationBtn = document.getElementById('shareLocationBtn');
   const shareRouteBtn = document.getElementById('shareRouteBtn');
@@ -244,11 +272,109 @@ function bindAuthUI() {
     await shareRouteJson(recipient, json);
   });
 
+  // 管理者載入使用者標註
+  const loadAdminMarkersBtn = document.getElementById('loadAdminMarkersBtn');
+  if (loadAdminMarkersBtn) loadAdminMarkersBtn.addEventListener('click', async () => {
+    const email = document.getElementById('adminMarkersEmail').value.trim();
+    if (!email) return;
+    const ok = await requireAdminSession();
+    if (!ok) return;
+    await loadUserMarkersForAdmin(email);
+  });
+
   // 核准/撤銷流程已移除
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   bindAuthUI();
-  // 預設顯示管理者分頁（尚未登入不顯示面板）
-  switchTab('admin');
+  // 預設顯示一般使用者分頁
+  switchTab('login');
+  // 若已存在會話，直接顯示分享功能
+  supabase.auth.getSession().then(({ data }) => {
+    if (data?.session?.user) {
+      document.getElementById('loginResult').textContent = '已登入';
+      const shareSec = document.getElementById('shareSection');
+      if (shareSec) shareSec.style.display = 'block';
+    }
+  });
 });
+
+// ===== 標註資料同步至資料庫（供管理者查看） =====
+async function getCurrentUserId() {
+  const session = (await supabase.auth.getSession()).data.session;
+  return session?.user?.id || null;
+}
+
+async function syncMarkerUpsert(marker) {
+  try {
+    const userId = await getCurrentUserId();
+    const email = (await supabase.auth.getUser()).data.user?.email || localStorage.getItem('app_user_email');
+    if (!userId) return;
+    const payload = {
+      id: marker.id,
+      user_id: userId,
+      email,
+      name: marker.name,
+      description: marker.description,
+      lat: marker.lat,
+      lng: marker.lng,
+      group_id: marker.groupId,
+      subgroup_id: marker.subgroupId,
+      color: marker.color,
+      icon: marker.icon,
+      image_data: marker.imageData || null,
+      route_records: marker.routeRecords || [],
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabase.from('markers').upsert(payload, { onConflict: 'id' });
+    if (error) console.warn('同步標註失敗', error);
+  } catch (e) {
+    console.warn('同步標註例外', e);
+  }
+}
+
+async function syncMarkerDelete(markerId) {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+    const { error } = await supabase.from('markers').delete().eq('id', markerId).eq('user_id', userId);
+    if (error) console.warn('刪除標註同步失敗', error);
+  } catch (e) {
+    console.warn('刪除標註同步例外', e);
+  }
+}
+
+// 暴露到全域供 script.js 呼叫
+window.syncMarkerUpsert = syncMarkerUpsert;
+window.syncMarkerDelete = syncMarkerDelete;
+
+// 管理者載入指定 email 的標註資料
+async function loadUserMarkersForAdmin(email) {
+  try {
+    const listEl = document.getElementById('adminMarkersList');
+    if (listEl) listEl.innerHTML = '載入中...';
+    const { data, error } = await supabase
+      .from('markers')
+      .select('id,name,description,lat,lng,updated_at')
+      .eq('email', email)
+      .order('updated_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    if (!listEl) return;
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div class="list-item">無標註資料</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    data.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.textContent = `${item.name} (${item.lat.toFixed(6)}, ${item.lng.toFixed(6)})`;
+      listEl.appendChild(div);
+    });
+  } catch (e) {
+    const listEl = document.getElementById('adminMarkersList');
+    if (listEl) listEl.innerHTML = '載入失敗';
+    console.warn('載入標註失敗', e);
+  }
+}
