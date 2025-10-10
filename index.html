@@ -104,12 +104,17 @@
             <!-- 管理者面板：需登入後才可即時監看 -->
             <form id="adminForm" style="display:none;">
                 <label for="adminEmail">管理者 Email</label>
-                <input type="email" id="adminEmail" value="tzongbinn@gmail.com" required>
+                <input type="email" id="adminEmail" required>
                 <label for="adminPassword">管理者密碼</label>
-                <input type="password" id="adminPassword" value="1a2b3c4d" required>
+                <input type="password" id="adminPassword" required>
                 <button type="submit" class="primary-btn" style="margin-top:8px;">登入管理者</button>
+                <button type="button" id="adminLogoutBtn" class="secondary-btn" style="margin-top:8px;">登出</button>
                 <div id="adminResult" class="status-display" style="margin-top:6px;">尚未登入</div>
                 <div id="adminLivePanel" style="display:none; margin-top:12px;">
+                    <label for="adminUserSelect">選擇使用者</label>
+                    <select id="adminUserSelect" style="margin-bottom:8px;">
+                        <option value="">全部使用者</option>
+                    </select>
                     <h3>目前使用者定位（即時）</h3>
                     <div id="adminLocationsList" class="markers-list" style="max-height:180px; overflow:auto;"></div>
                     <small>管理者登入後可於地圖與清單即時查看所有使用者最新位置。</small>
