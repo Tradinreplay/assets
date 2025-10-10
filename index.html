@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>匿名即時定位測試</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  #map { height: 500px; margin-bottom: 20px; }
+  #statusBox { margin-bottom: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div id="statusBox">定位測試中...</div>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+
+<script>
+  // ==========================
+  // 🔹 Supabase 初始化
+  // ==========================
+  const SUPABASE_URL = 'https://fqoxszrfvvfzqkbuyjkt.supabase.co'; // ← 改成你的 Supabase URL
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxb3hzenJmdnZmenFrYnV5amt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUyNTk1MTYsImV4cCI6MjA3MDgzNTUxNn0.MHnVGYjUxUpDv11ej2xqByV-WXA_Sub9hQuXbKtBEC4';       // ← 改成你的 anon key
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ==========================
+  // 🔹 地圖初始化
+  // ==========================
+  const map = L.map('map').setView([23.9739, 120.9820], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  let userMarker = null;
+  let allMarkers = {};
+  const statusBox = document.getElementById('statusBox');
+
+  // ==========================
+  // 🔹 匿名使用者 ID
+  // ==========================
+  let userId = localStorage.getItem('anon_user_id');
+  if (!userId) {
+    userId = 'user_' + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem('anon_user_id', userId);
+  }
+  console.log('匿名使用者 ID:', userId);
+
+  // ==========================
+  // 🔹 定位 + 上傳 Supabase
+  // ==========================
+  function startTracking() {
+    if (!navigator.geolocation) { alert('你的瀏覽器不支援定位功能'); return; }
+
+    navigator.geolocation.watchPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const speed = pos.coords.speed || 0;
+      const timestamp = new Date().toISOString();
+
+      // 顯示使用者位置
+      if (userMarker) userMarker.setLatLng([lat, lon]);
+      else userMarker = L.marker([lat, lon]).addTo(map).bindPopup('你的位置');
+      map.setView([lat, lon], 15);
+
+      // 上傳到 Supabase
+      const { error } = await supabase.from('locations').insert({
+        user_id: userId,
+        latitude: lat,
+        longitude: lon,
+        speed: speed,
+        created_at: timestamp
+      });
+
+      if (error) statusBox.textContent = `⚠️ 寫入失敗：${error.message}`;
+      else statusBox.textContent = `🟢 已上傳：${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+    }, (err) => {
+      console.error(err);
+      statusBox.textContent = '定位失敗';
+    }, { enableHighAccuracy: true });
+  }
+
+  startTracking();
+
+  // ==========================
+  // 🔹 顯示所有使用者位置
+  // ==========================
+  async function showAllUsers() {
+    const { data, error } = await supabase.from('locations')
+      .select('user_id, latitude, longitude')
+      .order('created_at', { ascending: false });
+
+    if (error) return console.error(error);
+
+    data.forEach((loc) => {
+      if (!allMarkers[loc.user_id]) {
+        allMarkers[loc.user_id] = L.circleMarker([loc.latitude, loc.longitude], { color: 'blue', radius: 5 })
+          .addTo(map)
+          .bindPopup(`使用者 ${loc.user_id}`);
+      } else {
+        allMarkers[loc.user_id].setLatLng([loc.latitude, loc.longitude]);
+      }
+    });
+  }
+
+  setInterval(showAllUsers, 5000); // 每 5 秒刷新
+</script>
+
+</body>
+</html>
