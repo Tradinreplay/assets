@@ -20,16 +20,16 @@
   <main>
     <section class="card">
       <h2>影像來源</h2>
-      <div class="controls">
+      <div class="preview">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+      </div>
+      <div class="controls controls-below">
         <button id="openCameraBtn">開啟相機</button>
         <button id="captureBtn" disabled>拍照</button>
         <label class="file-label">
           載入圖片<input type="file" id="imageInput" accept="image/*" />
         </label>
-      </div>
-      <div class="preview">
-        <video id="video" autoplay playsinline></video>
-        <canvas id="canvas" width="640" height="480"></canvas>
       </div>
       <div id="status" class="status">狀態：就緒</div>
     </section>
