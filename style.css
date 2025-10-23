@@ -17,8 +17,8 @@ footer { padding: 16px 24px; color: #666; }
 .file-label { display: inline-flex; align-items: center; gap: 8px; }
 .file-label input { display: inline-block; }
 
-.preview { display: grid; grid-template-columns: minmax(240px, 1fr); gap: 12px; align-items: start; }
-video, canvas { width: 100%; max-width: 360px; height: auto; background: #0b0b0b; border-radius: 8px; }
+.preview { display: grid; grid-template-columns: minmax(200px, 1fr); gap: 12px; align-items: start; }
+video, canvas { width: 100%; max-width: 240px; height: auto; background: #0b0b0b; border-radius: 8px; }
 canvas { display: none; }
 .status { margin-top: 10px; color: #888; }
 
@@ -31,7 +31,7 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
 
 .table-wrap { width: 100%; overflow-x: auto; }
 #recordsTable { width: 100%; border-collapse: collapse; min-width: 720px; table-layout: fixed; }
-#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; white-space: nowrap; text-align: center; }
+#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; white-space: normal; text-align: center; overflow-wrap: anywhere; word-break: break-word; }
 #recordsTable thead { background: #0f1a2a; color: #e6edf7; position: sticky; top: 0; z-index: 1; }
 .install-btn { background: #ffffff; color: #1f6feb; border: 1px solid #1f6feb; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 6px; }
 .action-btn.delete { background: #dc2626; }
