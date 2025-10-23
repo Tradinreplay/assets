@@ -126,12 +126,9 @@
     ctx.drawImage(img, 0, 0, w, h);
   }
 
-  // 自動辨識：連續掃描並在同一數字穩定2秒後自動填入
+  // 自動辨識：偵測到數字即辨識；完成後停止。欄位為空時自動繼續掃描
   let autoScanTimer = null;
   let isRecognizing = false;
-  let lastDigits = '';
-  let stableSince = 0;
-  let confirmedDigits = '';
 
   async function extractDigitsFromCanvas() {
     if (isRecognizing) return null;
@@ -152,24 +149,15 @@
 
   async function autoScanTick() {
     if (!mediaStream) return;
+    // 若已有人為或自動辨識結果，停止掃描以節省資源
+    if ((els.assetNumber.value || '').trim()) { stopAutoScan(); return; }
     drawToCanvasFromVideo();
     const digits = await extractDigitsFromCanvas();
-    if (!digits) {
-      lastDigits = '';
-      stableSince = 0;
-      return;
-    }
-    const now = Date.now();
-    if (digits !== lastDigits) {
-      lastDigits = digits;
-      stableSince = now;
-      setStatus('偵測到數字，保持2秒以自動辨識');
-    } else if (stableSince && now - stableSince >= 2000 && digits !== confirmedDigits) {
-      confirmedDigits = digits;
-      els.assetNumber.value = digits;
-      els.scanDateTime.value = formatDateTime(new Date());
-      setStatus('自動辨識完成');
-    }
+    if (!digits) return;
+    els.assetNumber.value = digits;
+    els.scanDateTime.value = formatDateTime(new Date());
+    setStatus('自動辨識完成');
+    stopAutoScan();
   }
 
   function startAutoScan() {
@@ -182,8 +170,6 @@
       clearInterval(autoScanTimer);
       autoScanTimer = null;
     }
-    lastDigits = '';
-    stableSince = 0;
   }
 
   async function recognizeFromCanvas() {
@@ -202,6 +188,7 @@
       els.assetNumber.value = digitsOnly;
       els.scanDateTime.value = formatDateTime(new Date());
       setStatus('辨識完成');
+      stopAutoScan();
     } catch (e) {
       console.error(e);
       setStatus('辨識失敗，請重試');
@@ -238,6 +225,8 @@
     els.isScrapped.checked = false;
     els.editingId.value = '';
     setStatus('表單已清除');
+    // 清空後恢復自動掃描
+    startAutoScan();
   }
 
   function renderRecords(filterText = '') {
@@ -509,7 +498,14 @@
   if (els.isManagedFilter) els.isManagedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
   els.assetNumber.addEventListener('input', () => {
     const num = els.assetNumber.value.trim();
-    if (!num) return;
+    if (!num) {
+      // 欄位為空時恢復自動掃描
+      startAutoScan();
+      setStatus('就緒');
+      return;
+    }
+    // 欄位非空則停止掃描
+    stopAutoScan();
     const isDup = getRecords().some(r => r.assetNumber === num && r.id !== els.editingId.value);
     if (isDup) setStatus('偵測到重複資產編號'); else setStatus('就緒');
   });
