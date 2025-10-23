@@ -1,0 +1,45 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; margin: 0; background: #f6f7fb; color: #222; }
+header { padding: 16px 24px; background: #1f6feb; color: #fff; }
+h1 { margin: 0 0 4px; font-size: 20px; }
+main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+footer { padding: 16px 24px; color: #666; }
+
+.card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.card h2 { margin: 0 0 12px; font-size: 18px; }
+
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.controls button, .form-actions button { background: #1f6feb; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+.controls button:disabled { background: #9bb7ef; cursor: not-allowed; }
+.controls input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+.controls select, .controls input[type="date"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+.file-label { display: inline-flex; align-items: center; gap: 8px; }
+.file-label input { display: inline-block; }
+
+.preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; align-items: start; }
+video, canvas { width: 100%; max-width: 640px; background: #0b0b0b; border-radius: 8px; }
+.status { margin-top: 10px; color: #555; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+label.inline { flex-direction: row; align-items: center; gap: 8px; }
+input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+
+.form-actions { margin-top: 10px; display: flex; gap: 10px; }
+
+#recordsTable { width: 100%; border-collapse: collapse; }
+#recordsTable th, #recordsTable td { border: 1px solid #e5e7eb; padding: 8px; font-size: 14px; }
+#recordsTable thead { background: #f2f4f7; }
+.action-btn { background: #334155; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 6px; }
+.action-btn.delete { background: #dc2626; }
+.action-btn.edit { background: #0ea5e9; }
+
+:root { color-scheme: light dark; }
+@media (prefers-color-scheme: dark) {
+  body { background: #0a0a0a; color: #e5e5e5; }
+  .card { background: #111827; border-color: #222; }
+  header { background: #0a66c2; }
+  #recordsTable th, #recordsTable td { border-color: #222; }
+  .controls button, .form-actions button { background: #0a66c2; }
+}
