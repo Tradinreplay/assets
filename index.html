@@ -5,15 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>資產辨識與管理</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="250924001600.png" type="image/png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="250924001600.png" />
+  <meta name="theme-color" content="#1f6feb" />
   <!-- Tesseract.js for OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
-  <!-- SheetJS for Excel export -->
+  <!-- SheetJS for Excel export & import -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
   <header>
     <h1>資產辨識與管理</h1>
     <p>拍照或載入圖片，辨識數字並建立資產紀錄。</p>
+    <button id="installBtn" class="install-btn" title="安裝至主頁">安裝至主頁</button>
   </header>
 
   <main>
@@ -40,6 +45,14 @@
           <label>
             資產編號
             <input type="text" id="assetNumber" placeholder="自動填入，可手動修正" />
+          </label>
+          <label>
+            設備名稱
+            <input type="text" id="deviceName" placeholder="請輸入設備名稱" />
+          </label>
+          <label>
+            機身編號
+            <input type="text" id="serialNumber" placeholder="請輸入機身編號" />
           </label>
           <label>
             單位
@@ -82,11 +95,17 @@
           <option value="false">否</option>
         </select>
         <button id="exportBtn">匯出Excel</button>
+        <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" />
+        <label class="inline"><input type="radio" name="importMode" value="merge" checked /> 合併匯入</label>
+        <label class="inline"><input type="radio" name="importMode" value="update" /> 更新匯入</label>
+        <button id="importBtn">匯入</button>
       </div>
       <table id="recordsTable">
         <thead>
           <tr>
             <th>資產編號</th>
+            <th>設備名稱</th>
+            <th>機身編號</th>
             <th>單位</th>
             <th>列管資產</th>
             <th>掃描日期時間</th>

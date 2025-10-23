@@ -7,6 +7,8 @@
     canvas: document.getElementById('canvas'),
     status: document.getElementById('status'),
     assetNumber: document.getElementById('assetNumber'),
+    deviceName: document.getElementById('deviceName'),
+    serialNumber: document.getElementById('serialNumber'),
     unit: document.getElementById('unit'),
     isManaged: document.getElementById('isManaged'),
     scanDateTime: document.getElementById('scanDateTime'),
@@ -21,6 +23,9 @@
     isScrappedFilter: document.getElementById('isScrappedFilter'),
     isManagedFilter: document.getElementById('isManagedFilter'),
     exportBtn: document.getElementById('exportBtn'),
+    importExcel: document.getElementById('importExcel'),
+    importBtn: document.getElementById('importBtn'),
+    installBtn: document.getElementById('installBtn'),
     recordsTableBody: document.querySelector('#recordsTable tbody'),
   };
 
@@ -50,15 +55,49 @@
     localStorage.setItem(LS_KEY, JSON.stringify(records));
   }
 
+  async function pickEnvironmentCamera() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      const envDevice = videoDevices.find(d => /back|rear|environment/i.test(d.label));
+      return envDevice?.deviceId || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   async function startCamera() {
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      stopCamera();
+      const envId = await pickEnvironmentCamera();
+      const constraints = {
+        audio: false,
+        video: envId ? { deviceId: { exact: envId } } : { facingMode: { ideal: 'environment' } }
+      };
+      mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       els.video.srcObject = mediaStream;
       els.captureBtn.disabled = false;
-      setStatus('相機已開啟');
-    } catch (e) {
-      console.error(e);
-      setStatus('開啟相機失敗，請允許相機權限或改用載入圖片');
+      setStatus(envId ? '相機已開啟（後鏡頭）' : '相機已開啟');
+    } catch (err) {
+      console.error('Camera error:', err);
+      setStatus('啟用後鏡頭失敗，嘗試使用預設鏡頭');
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+        els.video.srcObject = mediaStream;
+        els.captureBtn.disabled = false;
+        setStatus('相機已開啟（後鏡頭）');
+      } catch (err2) {
+        console.error('Fallback camera error:', err2);
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          els.video.srcObject = mediaStream;
+          els.captureBtn.disabled = false;
+          setStatus('相機已開啟（預設鏡頭）');
+        } catch (err3) {
+          console.error('Default camera error:', err3);
+          setStatus('無法啟用相機，請檢查權限或裝置');
+        }
+      }
     }
   }
 
@@ -132,6 +171,8 @@
 
   function resetForm() {
     els.assetNumber.value = '';
+    els.deviceName.value = '';
+    els.serialNumber.value = '';
     els.unit.value = '';
     els.isManaged.checked = false;
     els.scanDateTime.value = '';
@@ -164,7 +205,9 @@
     const filtered = records.filter(r => {
       if (keyword) {
         const hit = String(r.assetNumber || '').toLowerCase().includes(keyword) ||
-                    String(r.unit || '').toLowerCase().includes(keyword);
+                    String(r.unit || '').toLowerCase().includes(keyword) ||
+                    String(r.deviceName || '').toLowerCase().includes(keyword) ||
+                    String(r.serialNumber || '').toLowerCase().includes(keyword);
         if (!hit) return false;
       }
       if (unitKeyword) {
@@ -187,6 +230,8 @@
     els.recordsTableBody.innerHTML = filtered.map(r => {
       return `<tr data-id="${r.id}">
         <td>${escapeHtml(r.assetNumber)}</td>
+        <td>${escapeHtml(r.deviceName)}</td>
+        <td>${escapeHtml(r.serialNumber)}</td>
         <td>${escapeHtml(r.unit)}</td>
         <td>${r.isManaged ? '是' : '否'}</td>
         <td>${escapeHtml(r.scanDateTime)}</td>
@@ -216,6 +261,8 @@
       const rec = getRecords().find(r => r.id === id);
       if (!rec) return;
       els.assetNumber.value = rec.assetNumber || '';
+      els.deviceName.value = rec.deviceName || '';
+      els.serialNumber.value = rec.serialNumber || '';
       els.unit.value = rec.unit || '';
       els.isManaged.checked = !!rec.isManaged;
       els.scanDateTime.value = rec.scanDateTime || '';
@@ -237,6 +284,8 @@
     const record = {
       id: els.editingId.value || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       assetNumber: els.assetNumber.value.trim(),
+      deviceName: els.deviceName.value.trim(),
+      serialNumber: els.serialNumber.value.trim(),
       unit: els.unit.value.trim(),
       isManaged: !!els.isManaged.checked,
       scanDateTime: els.scanDateTime.value || formatDateTime(new Date()),
@@ -279,6 +328,8 @@
     const records = getRecords();
     const rows = records.map(r => ({
       '資產編號': r.assetNumber,
+      '設備名稱': r.deviceName,
+      '機身編號': r.serialNumber,
       '單位': r.unit,
       '列管資產': r.isManaged ? '是' : '否',
       '掃描日期時間': r.scanDateTime,
@@ -289,6 +340,102 @@
     XLSX.utils.book_append_sheet(wb, ws, '資產紀錄');
     XLSX.writeFile(wb, '資產辨識.xlsx');
     setStatus('已匯出Excel');
+  }
+
+  function parseBool(val) {
+    const s = String(val ?? '').trim().toLowerCase();
+    if (['true','1','y','yes','是'].includes(s)) return true;
+    if (['false','0','n','no','否'].includes(s)) return false;
+    return !!val;
+  }
+
+  function deriveTimestamp(str) {
+    const m = String(str || '').match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+    if (m) {
+      const [_, y, mo, d, h, mi, se] = m;
+      return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se)).getTime();
+    }
+    const d = new Date(str);
+    return isNaN(d) ? Date.now() : d.getTime();
+  }
+
+  function normalizeImportedRow(row) {
+    const assetNumber = String(row['資產編號'] ?? row['assetNumber'] ?? row['AssetNumber'] ?? row['Asset Number'] ?? row['asset_no'] ?? '').trim();
+    const deviceName = String(row['設備名稱'] ?? row['deviceName'] ?? row['Device Name'] ?? '').trim();
+    const serialNumber = String(row['機身編號'] ?? row['serialNumber'] ?? row['Serial Number'] ?? '').trim();
+    const unit = String(row['單位'] ?? row['unit'] ?? row['Unit'] ?? '').trim();
+    const isManaged = parseBool(row['列管資產'] ?? row['isManaged'] ?? row['Managed'] ?? row['managed']);
+    const isScrapped = parseBool(row['完成報廢'] ?? row['isScrapped'] ?? row['Scrapped'] ?? row['scrapped']);
+    const scanDateTimeRaw = String(row['掃描日期時間'] ?? row['scanDateTime'] ?? row['Scan Date Time'] ?? row['Scan DateTime'] ?? row['scan_time'] ?? '').trim();
+    const scanDateTime = scanDateTimeRaw || formatDateTime(new Date());
+    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime };
+    rec.scanTimestamp = deriveTimestamp(scanDateTime);
+    return rec;
+  }
+
+  function onImport() {
+    const file = els.importExcel?.files?.[0];
+    if (!file) { alert('請選擇Excel檔'); return; }
+    const mode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      let wb;
+      try {
+        wb = XLSX.read(data, { type: 'array' });
+      } catch (err) {
+        console.error(err);
+        alert('讀取Excel失敗，請確認檔案格式');
+        return;
+      }
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      const imported = rows.map(normalizeImportedRow).filter(r => !!r.assetNumber);
+
+      let records = getRecords();
+      const index = new Map(records.map(r => [String(r.assetNumber), r]));
+      let added = 0, updated = 0, skipped = 0;
+
+      imported.forEach(rec => {
+        const existing = index.get(rec.assetNumber);
+        if (mode === 'merge') {
+          if (existing) { skipped++; return; }
+          rec.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          records.push(rec);
+          index.set(rec.assetNumber, rec);
+          added++;
+        } else { // update
+          if (existing) {
+            const keep = existing;
+            const updatedRec = {
+              id: keep.id,
+              assetNumber: keep.assetNumber,
+              deviceName: rec.deviceName || keep.deviceName,
+              serialNumber: rec.serialNumber || keep.serialNumber,
+              unit: rec.unit || keep.unit,
+              isManaged: typeof rec.isManaged === 'boolean' ? rec.isManaged : keep.isManaged,
+              scanDateTime: rec.scanDateTime || keep.scanDateTime,
+              scanTimestamp: typeof rec.scanTimestamp === 'number' ? rec.scanTimestamp : (keep.scanTimestamp ?? deriveTimestamp(rec.scanDateTime || keep.scanDateTime)),
+              isScrapped: typeof rec.isScrapped === 'boolean' ? rec.isScrapped : keep.isScrapped,
+            };
+            records = records.map(r => r.assetNumber === updatedRec.assetNumber ? updatedRec : r);
+            updated++;
+          } else {
+            rec.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            records.push(rec);
+            index.set(rec.assetNumber, rec);
+            added++;
+          }
+        }
+      });
+
+      setRecords(records);
+      renderRecords(els.searchInput.value);
+      setStatus(`匯入完成：新增 ${added}，更新 ${updated}，跳過 ${skipped}`);
+      if (els.importExcel) els.importExcel.value = '';
+    };
+    reader.readAsArrayBuffer(file);
   }
 
   // Event bindings
@@ -311,6 +458,30 @@
   });
   document.getElementById('recordsTable').addEventListener('click', handleTableClick);
   els.exportBtn.addEventListener('click', exportToExcel);
+  if (els.importBtn) els.importBtn.addEventListener('click', onImport);
+
+  // PWA install prompt
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (els.installBtn) els.installBtn.style.display = 'inline-block';
+  });
+  if (els.installBtn) {
+    els.installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      setStatus(choice.outcome === 'accepted' ? '已安裝至主頁' : '使用者取消安裝');
+      deferredPrompt = null;
+      els.installBtn.style.display = 'none';
+    });
+  }
+
+  // Service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(console.error);
+  }
 
   // Init
   els.scanDateTime.value = '';

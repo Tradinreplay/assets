@@ -29,9 +29,9 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
 .form-actions { margin-top: 10px; display: flex; gap: 10px; }
 
 #recordsTable { width: 100%; border-collapse: collapse; }
-#recordsTable th, #recordsTable td { border: 1px solid #e5e7eb; padding: 8px; font-size: 14px; }
-#recordsTable thead { background: #f2f4f7; }
-.action-btn { background: #334155; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-right: 6px; }
+#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+#recordsTable thead { background: #0f1a2a; color: #e6edf7; }
+.install-btn { background: #ffffff; color: #1f6feb; border: 1px solid #1f6feb; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 6px; }
 .action-btn.delete { background: #dc2626; }
 .action-btn.edit { background: #0ea5e9; }
 
@@ -42,4 +42,5 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
   header { background: #0a66c2; }
   #recordsTable th, #recordsTable td { border-color: #222; }
   .controls button, .form-actions button { background: #0a66c2; }
+  .install-btn { background: #0a66c2; color: #fff; border-color: #0a66c2; }
 }
