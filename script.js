@@ -1,7 +1,5 @@
 (() => {
   const els = {
-    openCameraBtn: document.getElementById('openCameraBtn'),
-    captureBtn: document.getElementById('captureBtn'),
     imageInput: document.getElementById('imageInput'),
     video: document.getElementById('video'),
     canvas: document.getElementById('canvas'),
@@ -77,23 +75,23 @@
       };
       mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       els.video.srcObject = mediaStream;
-      els.captureBtn.disabled = false;
       setStatus(envId ? '相機已開啟（後鏡頭）' : '相機已開啟');
+      startAutoScan();
     } catch (err) {
       console.error('Camera error:', err);
       setStatus('啟用後鏡頭失敗，嘗試使用預設鏡頭');
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
         els.video.srcObject = mediaStream;
-        els.captureBtn.disabled = false;
         setStatus('相機已開啟（後鏡頭）');
+          startAutoScan();
       } catch (err2) {
         console.error('Fallback camera error:', err2);
         try {
           mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           els.video.srcObject = mediaStream;
-          els.captureBtn.disabled = false;
           setStatus('相機已開啟（預設鏡頭）');
+          startAutoScan();
         } catch (err3) {
           console.error('Default camera error:', err3);
           setStatus('無法啟用相機，請檢查權限或裝置');
@@ -106,8 +104,8 @@
     if (mediaStream) {
       mediaStream.getTracks().forEach(t => t.stop());
       mediaStream = null;
-      els.captureBtn.disabled = true;
     }
+    stopAutoScan();
   }
 
   function drawToCanvasFromVideo() {
@@ -126,6 +124,66 @@
     els.canvas.width = w;
     els.canvas.height = h;
     ctx.drawImage(img, 0, 0, w, h);
+  }
+
+  // 自動辨識：連續掃描並在同一數字穩定2秒後自動填入
+  let autoScanTimer = null;
+  let isRecognizing = false;
+  let lastDigits = '';
+  let stableSince = 0;
+  let confirmedDigits = '';
+
+  async function extractDigitsFromCanvas() {
+    if (isRecognizing) return null;
+    isRecognizing = true;
+    try {
+      const dataURL = els.canvas.toDataURL('image/png');
+      const result = await Tesseract.recognize(dataURL, 'eng', { tessedit_char_whitelist: '0123456789' });
+      const raw = result?.data?.text || '';
+      const digits = (raw.match(/[0-9]/g) || []).join('');
+      return digits || '';
+    } catch (e) {
+      console.error('OCR error:', e);
+      return '';
+    } finally {
+      isRecognizing = false;
+    }
+  }
+
+  async function autoScanTick() {
+    if (!mediaStream) return;
+    drawToCanvasFromVideo();
+    const digits = await extractDigitsFromCanvas();
+    if (!digits) {
+      lastDigits = '';
+      stableSince = 0;
+      return;
+    }
+    const now = Date.now();
+    if (digits !== lastDigits) {
+      lastDigits = digits;
+      stableSince = now;
+      setStatus('偵測到數字，保持2秒以自動辨識');
+    } else if (stableSince && now - stableSince >= 2000 && digits !== confirmedDigits) {
+      confirmedDigits = digits;
+      els.assetNumber.value = digits;
+      els.scanDateTime.value = formatDateTime(new Date());
+      setStatus('自動辨識完成');
+    }
+  }
+
+  function startAutoScan() {
+    stopAutoScan();
+    autoScanTimer = setInterval(autoScanTick, 1200);
+  }
+
+  function stopAutoScan() {
+    if (autoScanTimer) {
+      clearInterval(autoScanTimer);
+      autoScanTimer = null;
+    }
+    lastDigits = '';
+    stableSince = 0;
   }
 
   async function recognizeFromCanvas() {
@@ -440,8 +498,6 @@
   }
 
   // Event bindings
-  els.openCameraBtn.addEventListener('click', startCamera);
-  els.captureBtn.addEventListener('click', onCapture);
   els.imageInput.addEventListener('change', onFileSelected);
   els.resetBtn.addEventListener('click', resetForm);
   els.saveBtn.addEventListener('click', onSave);
