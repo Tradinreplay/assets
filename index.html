@@ -15,11 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>資產辨識與管理</h1>
-    <p>拍照或載入圖片，辨識數字並建立資產紀錄。</p>
-    <button id="installBtn" class="install-btn" title="安裝至主頁">安裝至主頁</button>
-  </header>
+  <!-- header removed to save vertical space -->
 
   <main>
     <section class="card">
@@ -100,21 +96,23 @@
         <label class="inline"><input type="radio" name="importMode" value="update" /> 更新匯入</label>
         <button id="importBtn">匯入</button>
       </div>
-      <table id="recordsTable">
-        <thead>
-          <tr>
-            <th>資產編號</th>
-            <th>設備名稱</th>
-            <th>機身編號</th>
-            <th>單位</th>
-            <th>列管資產</th>
-            <th>掃描日期時間</th>
-            <th>完成報廢</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="table-wrap">
+        <table id="recordsTable">
+          <thead>
+            <tr>
+              <th>資產編號</th>
+              <th>設備名稱</th>
+              <th>機身編號</th>
+              <th>單位</th>
+              <th>列管資產</th>
+              <th>掃描日期時間</th>
+              <th>完成報廢</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
   </main>
 

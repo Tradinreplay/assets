@@ -17,9 +17,10 @@ footer { padding: 16px 24px; color: #666; }
 .file-label { display: inline-flex; align-items: center; gap: 8px; }
 .file-label input { display: inline-block; }
 
-.preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; align-items: start; }
-video, canvas { width: 100%; max-width: 640px; background: #0b0b0b; border-radius: 8px; }
-.status { margin-top: 10px; color: #555; }
+.preview { display: grid; grid-template-columns: minmax(240px, 1fr); gap: 12px; align-items: start; }
+video, canvas { width: 100%; max-width: 360px; height: auto; background: #0b0b0b; border-radius: 8px; }
+canvas { display: none; }
+.status { margin-top: 10px; color: #888; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
@@ -28,19 +29,20 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
 
 .form-actions { margin-top: 10px; display: flex; gap: 10px; }
 
-#recordsTable { width: 100%; border-collapse: collapse; }
-#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-#recordsTable thead { background: #0f1a2a; color: #e6edf7; }
+.table-wrap { width: 100%; overflow-x: auto; }
+#recordsTable { width: 100%; border-collapse: collapse; min-width: 720px; table-layout: fixed; }
+#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; white-space: nowrap; }
+#recordsTable thead { background: #0f1a2a; color: #e6edf7; position: sticky; top: 0; z-index: 1; }
 .install-btn { background: #ffffff; color: #1f6feb; border: 1px solid #1f6feb; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 6px; }
 .action-btn.delete { background: #dc2626; }
 .action-btn.edit { background: #0ea5e9; }
 
 :root { color-scheme: light dark; }
 @media (prefers-color-scheme: dark) {
-  body { background: #0a0a0a; color: #e5e5e5; }
-  .card { background: #111827; border-color: #222; }
+  body { background: #0b1220; color: #e6edf7; }
+  .card { background: #0f172a; border-color: #1e293b; }
   header { background: #0a66c2; }
-  #recordsTable th, #recordsTable td { border-color: #222; }
+  #recordsTable th, #recordsTable td { border-color: #1e293b; }
   .controls button, .form-actions button { background: #0a66c2; }
   .install-btn { background: #0a66c2; color: #fff; border-color: #0a66c2; }
 }

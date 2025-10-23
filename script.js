@@ -72,7 +72,7 @@
       const envId = await pickEnvironmentCamera();
       const constraints = {
         audio: false,
-        video: envId ? { deviceId: { exact: envId } } : { facingMode: { ideal: 'environment' } }
+        video: envId ? { deviceId: { exact: envId }, width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 } } : { facingMode: { ideal: 'environment' }, width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 } }
       };
       mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       els.video.srcObject = mediaStream;
@@ -486,5 +486,7 @@
   // Init
   els.scanDateTime.value = '';
   renderRecords('');
+  // 開啟程式自動啟動相機
+  startCamera();
   window.addEventListener('beforeunload', stopCamera);
 })();
