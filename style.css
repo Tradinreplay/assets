@@ -31,7 +31,7 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
 
 .table-wrap { width: 100%; overflow-x: auto; }
 #recordsTable { width: 100%; border-collapse: collapse; min-width: 720px; table-layout: fixed; }
-#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; white-space: nowrap; }
+#recordsTable th, #recordsTable td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; white-space: nowrap; text-align: center; }
 #recordsTable thead { background: #0f1a2a; color: #e6edf7; position: sticky; top: 0; z-index: 1; }
 .install-btn { background: #ffffff; color: #1f6feb; border: 1px solid #1f6feb; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 6px; }
 .action-btn.delete { background: #dc2626; }

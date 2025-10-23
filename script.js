@@ -38,7 +38,8 @@
 
   function formatDateTime(d = new Date()) {
     const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    // 記錄到「分」，不含秒
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   function getRecords() {
@@ -196,10 +197,10 @@
     function parseScanTs(r) {
       if (typeof r.scanTimestamp === 'number') return r.scanTimestamp;
       const s = r.scanDateTime || '';
-      const m = s.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+      const m = s.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
       if (!m) return null;
       const [_, y, mo, d, h, mi, se] = m;
-      return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se)).getTime();
+      return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0)).getTime();
     }
 
     const filtered = records.filter(r => {
@@ -307,10 +308,10 @@
 
     (function deriveScanTs() {
       const s = record.scanDateTime;
-      const m = s.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+      const m = s.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
       if (m) {
         const [_, y, mo, d, h, mi, se] = m;
-        record.scanTimestamp = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se)).getTime();
+        record.scanTimestamp = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0)).getTime();
       } else {
         record.scanTimestamp = Date.now();
       }
@@ -350,10 +351,10 @@
   }
 
   function deriveTimestamp(str) {
-    const m = String(str || '').match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+    const m = String(str || '').match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
     if (m) {
       const [_, y, mo, d, h, mi, se] = m;
-      return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se)).getTime();
+      return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0)).getTime();
     }
     const d = new Date(str);
     return isNaN(d) ? Date.now() : d.getTime();
