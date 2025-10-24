@@ -65,6 +65,10 @@
           <label class="inline">
             <input type="checkbox" id="isScrapped" /> 是否完成報廢
           </label>
+          <label>
+            報廢日期時間
+            <input type="text" id="scrapDateTime" placeholder="自動填入" readonly />
+          </label>
         </div>
         <div class="form-actions">
           <button type="submit" id="saveBtn">保存紀錄</button>
@@ -107,7 +111,8 @@
               <th>列管資產</th>
               <th>掃描日期時間</th>
               <th>完成報廢</th>
-              <th>操作</th>
+            <th>報廢日期時間</th>
+            <th>操作</th>
             </tr>
           </thead>
           <tbody></tbody>

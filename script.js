@@ -10,6 +10,7 @@
     unit: document.getElementById('unit'),
     isManaged: document.getElementById('isManaged'),
     scanDateTime: document.getElementById('scanDateTime'),
+    scrapDateTime: document.getElementById('scrapDateTime'),
     isScrapped: document.getElementById('isScrapped'),
     saveBtn: document.getElementById('saveBtn'),
     resetBtn: document.getElementById('resetBtn'),
@@ -222,6 +223,7 @@
     els.unit.value = '';
     els.isManaged.checked = false;
     els.scanDateTime.value = '';
+    if (els.scrapDateTime) els.scrapDateTime.value = '';
     els.isScrapped.checked = false;
     els.editingId.value = '';
     setStatus('表單已清除');
@@ -284,6 +286,7 @@
         <td>${r.isManaged ? '是' : '否'}</td>
         <td>${escapeHtml(r.scanDateTime)}</td>
         <td>${r.isScrapped ? '是' : '否'}</td>
+        <td>${escapeHtml(r.scrapDateTime)}</td>
         <td>
           <button class="action-btn edit" data-action="edit">編輯</button>
           <button class="action-btn delete" data-action="delete">刪除</button>
@@ -314,6 +317,7 @@
       els.unit.value = rec.unit || '';
       els.isManaged.checked = !!rec.isManaged;
       els.scanDateTime.value = rec.scanDateTime || '';
+      if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
       els.isScrapped.checked = !!rec.isScrapped;
       els.editingId.value = rec.id;
       setStatus('已載入紀錄至表單，可編修後保存');
@@ -338,6 +342,9 @@
       isManaged: !!els.isManaged.checked,
       scanDateTime: els.scanDateTime.value || formatDateTime(new Date()),
       isScrapped: !!els.isScrapped.checked,
+      scrapDateTime: (els.isScrapped.checked
+        ? (els.scrapDateTime?.value?.trim() || formatDateTime(new Date()))
+        : ''),
     };
 
     if (!record.assetNumber) {
@@ -382,6 +389,7 @@
       '列管資產': r.isManaged ? '是' : '否',
       '掃描日期時間': r.scanDateTime,
       '完成報廢': r.isScrapped ? '是' : '否',
+      '報廢日期時間': r.scrapDateTime || '',
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -416,7 +424,9 @@
     const isScrapped = parseBool(row['完成報廢'] ?? row['isScrapped'] ?? row['Scrapped'] ?? row['scrapped']);
     const scanDateTimeRaw = String(row['掃描日期時間'] ?? row['scanDateTime'] ?? row['Scan Date Time'] ?? row['Scan DateTime'] ?? row['scan_time'] ?? '').trim();
     const scanDateTime = scanDateTimeRaw || formatDateTime(new Date());
-    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime };
+    const scrapDateTimeRaw = String(row['報廢日期時間'] ?? row['scrapDateTime'] ?? row['Scrap Date Time'] ?? row['Scrap DateTime'] ?? '').trim();
+    const scrapDateTime = scrapDateTimeRaw || '';
+    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime, scrapDateTime };
     rec.scanTimestamp = deriveTimestamp(scanDateTime);
     return rec;
   }
@@ -466,6 +476,7 @@
               scanDateTime: rec.scanDateTime || keep.scanDateTime,
               scanTimestamp: typeof rec.scanTimestamp === 'number' ? rec.scanTimestamp : (keep.scanTimestamp ?? deriveTimestamp(rec.scanDateTime || keep.scanDateTime)),
               isScrapped: typeof rec.isScrapped === 'boolean' ? rec.isScrapped : keep.isScrapped,
+              scrapDateTime: (typeof rec.isScrapped === 'boolean' ? (rec.isScrapped ? (rec.scrapDateTime || keep.scrapDateTime || '') : '') : (rec.scrapDateTime || keep.scrapDateTime || '')),
             };
             records = records.map(r => r.assetNumber === updatedRec.assetNumber ? updatedRec : r);
             updated++;
@@ -512,6 +523,17 @@
   document.getElementById('recordsTable').addEventListener('click', handleTableClick);
   els.exportBtn.addEventListener('click', exportToExcel);
   if (els.importBtn) els.importBtn.addEventListener('click', onImport);
+  els.isScrapped.addEventListener('change', () => {
+    if (els.isScrapped.checked) {
+      const now = new Date();
+      const dt = formatDateTime(now);
+      if (els.scrapDateTime) els.scrapDateTime.value = dt;
+      setStatus('已勾選報廢，已填入日期時間');
+    } else {
+      if (els.scrapDateTime) els.scrapDateTime.value = '';
+      setStatus('取消報廢勾選，已清除日期時間');
+    }
+  });
 
   // PWA install prompt
   let deferredPrompt = null;
