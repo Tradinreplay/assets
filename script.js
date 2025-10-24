@@ -149,11 +149,45 @@
     }
   }
 
+  function tryDecodeQRFromCanvas() {
+    try {
+      const ctx = els.canvas.getContext('2d');
+      const w = els.canvas.width;
+      const h = els.canvas.height;
+      if (!w || !h) return null;
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const qr = window.jsQR ? jsQR(imageData.data, w, h, { inversionAttempts: 'dontInvert' }) : null;
+      return qr && qr.data ? qr : null;
+    } catch (e) {
+      console.error('QR decode error:', e);
+      return null;
+    }
+  }
+
   async function autoScanTick() {
     if (!mediaStream) return;
     // 若已有人為或自動辨識結果，停止掃描以節省資源
     if ((els.assetNumber.value || '').trim()) { stopAutoScan(); return; }
     drawToCanvasFromVideo();
+
+    // 先嘗試 QR 解碼
+    const qr = tryDecodeQRFromCanvas();
+    if (qr) {
+      const text = String(qr.data || '').trim();
+      const digits = (text.match(/\d+/g) || []).join('');
+      if (digits) {
+        els.assetNumber.value = digits;
+        els.scanDateTime.value = formatDateTime(new Date());
+        setStatus('QR碼辨識完成');
+        stopAutoScan();
+        return;
+      } else {
+        setStatus('QR碼已解碼：' + (text.length > 30 ? text.slice(0,30)+'…' : text));
+        // 若未含數字，保留 OCR 流程嘗試取得資產編號
+      }
+    }
+
+    // 再嘗試 OCR 數字辨識
     const digits = await extractDigitsFromCanvas();
     if (!digits) return;
     els.assetNumber.value = digits;
@@ -175,8 +209,26 @@
   }
 
   async function recognizeFromCanvas() {
-    const dataURL = els.canvas.toDataURL('image/png');
     setStatus('辨識中...');
+    // 先嘗試 QR 解碼
+    const qr = tryDecodeQRFromCanvas();
+    if (qr) {
+      const text = String(qr.data || '').trim();
+      const digits = (text.match(/\d+/g) || []).join('');
+      if (digits) {
+        els.assetNumber.value = digits;
+        els.scanDateTime.value = formatDateTime(new Date());
+        setStatus('QR碼辨識完成');
+        stopAutoScan();
+        return;
+      } else {
+        setStatus('QR碼已解碼：' + (text.length > 30 ? text.slice(0,30)+'…' : text));
+        // 若未含數字，繼續 OCR
+      }
+    }
+
+    // 再嘗試 OCR
+    const dataURL = els.canvas.toDataURL('image/png');
     try {
       const result = await Tesseract.recognize(dataURL, 'eng', {
         tessedit_char_whitelist: '0123456789',
