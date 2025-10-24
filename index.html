@@ -33,7 +33,10 @@
     </section>
 
     <section class="card">
-      <h2>辨識結果與表格</h2>
+      <div class="section-header">
+        <h2>辨識結果與表格</h2>
+        <button type="button" id="resetBtn">清除表單</button>
+      </div>
       <form id="assetForm">
         <div class="grid">
           <label>
@@ -65,7 +68,6 @@
         </div>
         <div class="form-actions">
           <button type="submit" id="saveBtn">保存紀錄</button>
-          <button type="button" id="resetBtn">清除表單</button>
           <input type="hidden" id="editingId" />
         </div>
       </form>

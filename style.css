@@ -44,6 +44,9 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
   .card { background: #0f172a; border-color: #1e293b; }
   header { background: #0a66c2; }
   #recordsTable th, #recordsTable td { border-color: #1e293b; }
-  .controls button, .form-actions button { background: #0a66c2; }
+  .controls button, .form-actions button, .section-header button { background: #0a66c2; }
   .install-btn { background: #0a66c2; color: #fff; border-color: #0a66c2; }
 }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
+.section-header h2 { margin: 0; }
+.section-header button { background: #1f6feb; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
