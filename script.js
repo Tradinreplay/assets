@@ -1,4 +1,10 @@
 (() => {
+  const SUPABASE_URL = 'https://pfeiiqqbktgdjldkiixa.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmZWlpcXFia3RnZGpsZGtpaXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NTA0OTAsImV4cCI6MjA4MTEyNjQ5MH0.CpQRpgv4Ov0yv1mEZH4zgd2vFYFEcRVG4SzFiXHRn8M';
+  
+  // Initialize Supabase
+  const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
   const els = {
     imageInput: document.getElementById('imageInput'),
     video: document.getElementById('video'),
@@ -29,8 +35,42 @@
     recordsTableBody: document.querySelector('#recordsTable tbody'),
   };
 
-  const LS_KEY = 'asset_records_v1';
+  let localRecords = [];
   let mediaStream = null;
+
+  // --- Data Mapping Helpers ---
+  function toLocalRecord(dbRecord) {
+    return {
+      id: dbRecord.id,
+      assetNumber: dbRecord.asset_number,
+      deviceName: dbRecord.device_name,
+      serialNumber: dbRecord.serial_number,
+      unit: dbRecord.unit,
+      isManaged: dbRecord.is_managed,
+      scanDateTime: dbRecord.scan_date_time,
+      scanTimestamp: dbRecord.scan_timestamp,
+      isScrapped: dbRecord.is_scrapped,
+      scrapDateTime: dbRecord.scrap_date_time,
+      scrapBy: dbRecord.scrap_by
+    };
+  }
+
+  function toDbRecord(r) {
+    return {
+      id: r.id,
+      asset_number: r.assetNumber,
+      device_name: r.deviceName,
+      serial_number: r.serialNumber,
+      unit: r.unit,
+      is_managed: r.isManaged,
+      scan_date_time: r.scanDateTime,
+      scan_timestamp: r.scanTimestamp,
+      is_scrapped: r.isScrapped,
+      scrap_date_time: r.scrapDateTime,
+      scrap_by: r.scrapBy,
+      updated_at: new Date().toISOString()
+    };
+  }
 
   function setStatus(text) {
     els.status.textContent = '狀態：' + text;
@@ -38,24 +78,37 @@
 
   function formatDateTime(d = new Date()) {
     const pad = (n) => String(n).padStart(2, '0');
-    // 記錄到「分」，不含秒
     return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  function getRecords() {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-      console.error('load records failed', e);
-      return [];
+  // --- Data Access ---
+  async function fetchRecords() {
+    if (!supabase) {
+        console.error('Supabase client not initialized');
+        return;
+    }
+    const { data, error } = await supabase
+      .from('asset_records')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Sync error:', error);
+      setStatus('同步失敗: ' + error.message);
+      return;
+    }
+    
+    if (data) {
+      localRecords = data.map(toLocalRecord);
+      renderRecords(els.searchInput.value);
     }
   }
 
-  function setRecords(records) {
-    localStorage.setItem(LS_KEY, JSON.stringify(records));
+  function getRecords() {
+    return localRecords;
   }
 
+  // --- Camera Functions ---
   async function pickEnvironmentCamera() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
@@ -128,7 +181,7 @@
     ctx.drawImage(img, 0, 0, w, h);
   }
 
-  // 自動辨識：偵測到數字即辨識；完成後停止。欄位為空時自動繼續掃描
+  // --- Recognition Logic ---
   let autoScanTimer = null;
   let isRecognizing = false;
 
@@ -166,11 +219,9 @@
 
   async function autoScanTick() {
     if (!mediaStream) return;
-    // 若已有人為或自動辨識結果，停止掃描以節省資源
     if ((els.assetNumber.value || '').trim()) { stopAutoScan(); return; }
     drawToCanvasFromVideo();
 
-    // 先嘗試 QR 解碼
     const qr = tryDecodeQRFromCanvas();
     if (qr) {
       const text = String(qr.data || '').trim();
@@ -183,11 +234,9 @@
         return;
       } else {
         setStatus('QR碼已解碼：' + (text.length > 30 ? text.slice(0,30)+'…' : text));
-        // 若未含數字，保留 OCR 流程嘗試取得資產編號
       }
     }
 
-    // 再嘗試 OCR 數字辨識
     const digits = await extractDigitsFromCanvas();
     if (!digits) return;
     els.assetNumber.value = digits;
@@ -208,66 +257,42 @@
     }
   }
 
-  async function recognizeFromCanvas() {
-    setStatus('辨識中...');
-    // 先嘗試 QR 解碼
-    const qr = tryDecodeQRFromCanvas();
-    if (qr) {
-      const text = String(qr.data || '').trim();
-      const digits = (text.match(/\d+/g) || []).join('');
-      if (digits) {
-        els.assetNumber.value = digits;
-        els.scanDateTime.value = formatDateTime(new Date());
-        setStatus('QR碼辨識完成');
-        stopAutoScan();
-        return;
-      } else {
-        setStatus('QR碼已解碼：' + (text.length > 30 ? text.slice(0,30)+'…' : text));
-        // 若未含數字，繼續 OCR
-      }
-    }
-
-    // 再嘗試 OCR
-    const dataURL = els.canvas.toDataURL('image/png');
-    try {
-      const result = await Tesseract.recognize(dataURL, 'eng', {
-        tessedit_char_whitelist: '0123456789',
-      });
-      const raw = result.data.text || '';
-      const digitsOnly = (raw.match(/[0-9]/g) || []).join('');
-      if (!digitsOnly) {
-        setStatus('未偵測到數字，請調整影像再試');
-        return;
-      }
-      els.assetNumber.value = digitsOnly;
-      els.scanDateTime.value = formatDateTime(new Date());
-      setStatus('辨識完成');
-      stopAutoScan();
-    } catch (e) {
-      console.error(e);
-      setStatus('辨識失敗，請重試');
-    }
-  }
-
-  function onCapture() {
-    drawToCanvasFromVideo();
-    recognizeFromCanvas();
-  }
-
   function onFileSelected(ev) {
     const file = ev.target.files && ev.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
-      img.onload = () => {
+      img.onload = async () => {
         drawImageToCanvas(img);
-        recognizeFromCanvas();
+        // Manual recognize trigger
+        setStatus('辨識中...');
+        const qr = tryDecodeQRFromCanvas();
+        if (qr) {
+             const text = String(qr.data || '').trim();
+             const digits = (text.match(/\d+/g) || []).join('');
+             if(digits) {
+                 els.assetNumber.value = digits;
+                 els.scanDateTime.value = formatDateTime(new Date());
+                 setStatus('QR碼辨識完成');
+                 return;
+             }
+        }
+        const digits = await extractDigitsFromCanvas();
+        if(digits) {
+            els.assetNumber.value = digits;
+            els.scanDateTime.value = formatDateTime(new Date());
+            setStatus('辨識完成');
+        } else {
+            setStatus('未偵測到數字');
+        }
       };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
   }
+
+  // --- Form & List Logic ---
 
   function resetForm() {
     els.assetNumber.value = '';
@@ -281,7 +306,6 @@
      els.isScrapped.checked = false;
      els.editingId.value = '';
     setStatus('表單已清除');
-    // 清空後恢復自動掃描
     startAutoScan();
   }
 
@@ -356,13 +380,14 @@
     })[s]);
   }
 
-  function handleTableClick(ev) {
+  async function handleTableClick(ev) {
     const btn = ev.target.closest('button');
     if (!btn) return;
     const tr = ev.target.closest('tr');
     const id = tr?.dataset?.id;
     if (!id) return;
     const action = btn.dataset.action;
+    
     if (action === 'edit') {
       const rec = getRecords().find(r => r.id === id);
       if (!rec) return;
@@ -380,14 +405,25 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (action === 'delete') {
       if (!confirm('確定刪除這筆紀錄？')) return;
-      const records = getRecords().filter(r => r.id !== id);
-      setRecords(records);
+      
+      setStatus('刪除中...');
+      const { error } = await supabase.from('asset_records').delete().eq('id', id);
+      
+      if (error) {
+          console.error(error);
+          alert('刪除失敗');
+          setStatus('刪除失敗');
+          return;
+      }
+
+      // Update local state
+      localRecords = localRecords.filter(r => r.id !== id);
       renderRecords(els.searchInput.value);
       setStatus('紀錄已刪除');
     }
   }
 
-  function onSave(ev) {
+  async function onSave(ev) {
     ev.preventDefault();
     const record = {
       id: els.editingId.value || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -417,6 +453,7 @@
       return;
     }
 
+    // Derive timestamp
     (function deriveScanTs() {
       const s = record.scanDateTime;
       const m = s.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
@@ -428,9 +465,22 @@
       }
     })();
 
+    setStatus('儲存中...');
+    const dbRecord = toDbRecord(record);
+    const { error } = await supabase.from('asset_records').upsert(dbRecord);
+
+    if (error) {
+        console.error(error);
+        alert('儲存失敗: ' + error.message);
+        setStatus('儲存失敗');
+        return;
+    }
+
+    // Update local
     const idx = records.findIndex(r => r.id === record.id);
     if (idx >= 0) records[idx] = record; else records.push(record);
-    setRecords(records);
+    localRecords = records;
+    
     renderRecords(els.searchInput.value);
     setStatus(idx >= 0 ? '紀錄已更新' : '紀錄已保存');
     resetForm();
@@ -496,7 +546,7 @@
     if (!file) { alert('請選擇Excel檔'); return; }
     const mode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const data = new Uint8Array(e.target.result);
       let wb;
       try {
@@ -511,8 +561,10 @@
       const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
       const imported = rows.map(normalizeImportedRow).filter(r => !!r.assetNumber);
 
-      let records = getRecords();
+      let records = [...localRecords]; // Copy current
       const index = new Map(records.map(r => [String(r.assetNumber), r]));
+      const toUpsert = [];
+      
       let added = 0, updated = 0, skipped = 0;
 
       imported.forEach(rec => {
@@ -520,6 +572,7 @@
         if (mode === 'merge') {
           if (existing) { skipped++; return; }
           rec.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          toUpsert.push(rec);
           records.push(rec);
           index.set(rec.assetNumber, rec);
           added++;
@@ -527,8 +580,7 @@
           if (existing) {
             const keep = existing;
             const updatedRec = {
-              id: keep.id,
-              assetNumber: keep.assetNumber,
+              ...keep,
               deviceName: rec.deviceName || keep.deviceName,
               serialNumber: rec.serialNumber || keep.serialNumber,
               unit: rec.unit || keep.unit,
@@ -540,11 +592,14 @@
               scrapBy: (typeof rec.isScrapped === 'boolean'
                 ? (rec.isScrapped ? ((rec.scrapBy || keep.scrapBy || '').trim()) : '')
                 : ((rec.scrapBy || keep.scrapBy || '').trim())),
+              updated_at: new Date().toISOString()
             };
+            toUpsert.push(updatedRec);
             records = records.map(r => r.assetNumber === updatedRec.assetNumber ? updatedRec : r);
             updated++;
           } else {
             rec.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            toUpsert.push(rec);
             records.push(rec);
             index.set(rec.assetNumber, rec);
             added++;
@@ -552,7 +607,21 @@
         }
       });
 
-      setRecords(records);
+      if (toUpsert.length > 0) {
+          setStatus(`正在匯入 ${toUpsert.length} 筆資料至雲端...`);
+          const dbRecords = toUpsert.map(toDbRecord);
+          // Batch upsert might be limited by payload size, but for simple usage assume it fits or split if needed
+          // Supabase upsert
+          const { error } = await supabase.from('asset_records').upsert(dbRecords);
+          if (error) {
+              console.error(error);
+              alert('匯入雲端失敗: ' + error.message);
+              setStatus('匯入雲端失敗');
+              return;
+          }
+      }
+
+      localRecords = records;
       renderRecords(els.searchInput.value);
       setStatus(`匯入完成：新增 ${added}，更新 ${updated}，跳過 ${skipped}`);
       if (els.importExcel) els.importExcel.value = '';
@@ -560,7 +629,7 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // Event bindings
+  // --- Events ---
   els.imageInput.addEventListener('change', onFileSelected);
   els.resetBtn.addEventListener('click', resetForm);
   els.saveBtn.addEventListener('click', onSave);
@@ -573,12 +642,10 @@
   els.assetNumber.addEventListener('input', () => {
     const num = els.assetNumber.value.trim();
     if (!num) {
-      // 欄位為空時恢復自動掃描
       startAutoScan();
       setStatus('就緒');
       return;
     }
-    // 欄位非空則停止掃描
     stopAutoScan();
     const isDup = getRecords().some(r => r.assetNumber === num && r.id !== els.editingId.value);
     if (isDup) setStatus('偵測到重複資產編號'); else setStatus('就緒');
@@ -599,7 +666,7 @@
     }
   });
 
-  // PWA install prompt
+  // PWA
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -617,15 +684,20 @@
     });
   }
 
-  // Service worker
+  // SW
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(console.error);
   }
 
-  // Init
+  // Start
   els.scanDateTime.value = '';
-  renderRecords('');
-  // 開啟程式自動啟動相機
   startCamera();
   window.addEventListener('beforeunload', stopCamera);
+  
+  // Initial Sync
+  setStatus('連線 Supabase 中...');
+  fetchRecords().then(() => {
+      // ready
+  });
+
 })();
