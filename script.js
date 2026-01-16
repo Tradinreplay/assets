@@ -5,6 +5,9 @@
   // Initialize Supabase
   const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
+  // Admin Configuration
+  const ADMIN_PASSWORD = 'admin'; // Default password, change this if needed
+
   const els = {
     imageInput: document.getElementById('imageInput'),
     video: document.getElementById('video'),
@@ -37,6 +40,16 @@
 
   let localRecords = [];
   let mediaStream = null;
+
+  // --- Helper: Admin Check ---
+  function checkAdmin() {
+    const input = prompt('請輸入管理者密碼以繼續操作：');
+    if (input === ADMIN_PASSWORD) {
+      return true;
+    }
+    alert('密碼錯誤，操作已取消。');
+    return false;
+  }
 
   // --- Data Mapping Helpers ---
   function toLocalRecord(dbRecord) {
@@ -404,6 +417,9 @@
       setStatus('已載入紀錄至表單，可編修後保存');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (action === 'delete') {
+      // Admin check
+      if (!checkAdmin()) return;
+
       if (!confirm('確定刪除這筆紀錄？')) return;
       
       setStatus('刪除中...');
@@ -425,6 +441,7 @@
 
   async function onSave(ev) {
     ev.preventDefault();
+
     const record = {
       id: els.editingId.value || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       assetNumber: els.assetNumber.value.trim(),
@@ -452,6 +469,9 @@
       setStatus('偵測到重複資產編號');
       return;
     }
+
+    // Admin check before saving (creating or updating)
+    if (!checkAdmin()) return;
 
     // Derive timestamp
     (function deriveScanTs() {
@@ -544,6 +564,10 @@
   function onImport() {
     const file = els.importExcel?.files?.[0];
     if (!file) { alert('請選擇Excel檔'); return; }
+
+    // Admin check for Import
+    if (!checkAdmin()) return;
+
     const mode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
     const reader = new FileReader();
     reader.onload = async (e) => {
