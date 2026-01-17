@@ -369,7 +369,9 @@
     });
 
     els.recordsTableBody.innerHTML = filtered.map(r => {
-      return `<tr data-id="${r.id}">
+      // Add red background if not scrapped (isScrapped is false/falsy)
+      const rowClass = !r.isScrapped ? 'class="not-scrapped"' : '';
+      return `<tr data-id="${r.id}" ${rowClass}>
         <td>${escapeHtml(r.assetNumber)}</td>
         <td>${escapeHtml(r.deviceName)}</td>
         <td>${escapeHtml(r.serialNumber)}</td>

@@ -38,6 +38,9 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
 .action-btn.delete { background: #dc2626; }
 .action-btn.edit { background: #0ea5e9; }
 
+/* Not Scrapped Highlight */
+.not-scrapped { background-color: #fee2e2; }
+
 :root { color-scheme: light dark; }
 @media (prefers-color-scheme: dark) {
   body { background: #0b1220; color: #e6edf7; }
@@ -46,6 +49,8 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
   #recordsTable th, #recordsTable td { border-color: #1e293b; }
   .controls button, .form-actions button, .section-header button { background: #0a66c2; }
   .install-btn { background: #0a66c2; color: #fff; border-color: #0a66c2; }
+  /* Not Scrapped Highlight Dark Mode */
+  .not-scrapped { background-color: rgba(220, 38, 38, 0.25); }
 }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
 .section-header h2 { margin: 0; }
