@@ -687,26 +687,39 @@
   
   if (document.getElementById('refreshBtn')) {
     document.getElementById('refreshBtn').addEventListener('click', async () => {
-      if (confirm('確定要清除暫存並重新讀取資料嗎？')) {
-         setStatus('正在清除暫存並重新讀取...');
-         
-         // Clear Cookies
-         const cookies = document.cookie.split(";");
-         for (let i = 0; i < cookies.length; i++) {
-             const cookie = cookies[i];
-             const eqPos = cookie.indexOf("=");
-             const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
-             document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+      if (confirm('確定要登出並清除所有暫存資料嗎？網頁將會重新載入。')) {
+         setStatus('正在清除資料並重新載入...');
+
+         // 1. Supabase SignOut
+         if (supabase) {
+           await supabase.auth.signOut();
          }
          
-         // Clear LocalStorage (to ensure thorough cleanup)
+         // 2. Clear Storage
          localStorage.clear();
+         sessionStorage.clear();
 
-         // Reload data
-         localRecords = [];
-         renderRecords();
-         await fetchRecords();
-         setStatus('暫存已清除，資料已更新');
+         // 3. Clear Cookies
+         document.cookie.split(";").forEach((c) => {
+           document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+         });
+
+         // 4. Clear Caches
+         if ('caches' in window) {
+           const keys = await caches.keys();
+           await Promise.all(keys.map(key => caches.delete(key)));
+         }
+
+         // 5. Unregister Service Workers
+         if ('serviceWorker' in navigator) {
+           const registrations = await navigator.serviceWorker.getRegistrations();
+           for (const registration of registrations) {
+             await registration.unregister();
+           }
+         }
+
+         // 6. Reload
+         window.location.reload();
       }
     });
   }
