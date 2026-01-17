@@ -371,8 +371,13 @@
     els.recordsTableBody.innerHTML = filtered.map(r => {
       // Add red background if not scrapped (isScrapped is false/falsy)
       const rowClass = !r.isScrapped ? 'class="not-scrapped"' : '';
+      
+      const assetNumClass = [];
+      if (r.isManaged) assetNumClass.push('asset-number-managed');
+      if (!r.isScrapped) assetNumClass.push('asset-number-bold');
+
       return `<tr data-id="${r.id}" ${rowClass}>
-        <td>${escapeHtml(r.assetNumber)}</td>
+        <td class="${assetNumClass.join(' ')}">${escapeHtml(r.assetNumber)}</td>
         <td>${escapeHtml(r.deviceName)}</td>
         <td>${escapeHtml(r.serialNumber)}</td>
         <td>${escapeHtml(r.unit)}</td>
@@ -679,6 +684,26 @@
   document.getElementById('recordsTable').addEventListener('click', handleTableClick);
   els.exportBtn.addEventListener('click', exportToExcel);
   if (els.importBtn) els.importBtn.addEventListener('click', onImport);
+  
+  if (document.getElementById('refreshBtn')) {
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      if (confirm('確定要重新整理資料嗎？這將會重新讀取資料庫。')) {
+         setStatus('正在重新讀取...');
+         // Optional: Clear caches if available to simulate hard refresh for data
+         if ('caches' in window) {
+           try {
+             // We don't delete all caches to avoid breaking PWA shell, but we can if "Delete web cache" is literal.
+             // For safety and speed, we rely on refetching data.
+           } catch(e) {}
+         }
+         localRecords = [];
+         renderRecords();
+         await fetchRecords();
+         setStatus('資料已更新');
+      }
+    });
+  }
+
   els.isScrapped.addEventListener('change', () => {
     if (els.isScrapped.checked) {
       const now = new Date();

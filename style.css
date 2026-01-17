@@ -37,9 +37,19 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
 .install-btn { background: #ffffff; color: #1f6feb; border: 1px solid #1f6feb; padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-top: 6px; }
 .action-btn.delete { background: #dc2626; }
 .action-btn.edit { background: #0ea5e9; }
+.refresh-btn { background: #059669 !important; /* Green */ }
 
 /* Not Scrapped Highlight */
 .not-scrapped { background-color: #fee2e2; }
+
+/* Managed Asset Number Highlight */
+.asset-number-managed {
+  color: #d97706; /* Darker yellow/orange for visibility on light background */
+  font-weight: 700;
+}
+.asset-number-bold {
+  font-weight: 700;
+}
 
 :root { color-scheme: light dark; }
 @media (prefers-color-scheme: dark) {
@@ -49,8 +59,15 @@ input[type="text"] { padding: 8px 10px; border: 1px solid #d1d5db; border-radius
   #recordsTable th, #recordsTable td { border-color: #1e293b; }
   .controls button, .form-actions button, .section-header button { background: #0a66c2; }
   .install-btn { background: #0a66c2; color: #fff; border-color: #0a66c2; }
+  .refresh-btn { background: #059669 !important; }
+  
   /* Not Scrapped Highlight Dark Mode */
   .not-scrapped { background-color: rgba(220, 38, 38, 0.25); }
+  
+  /* Managed Asset Number Highlight Dark Mode */
+  .asset-number-managed {
+    color: #fcd34d; /* Brighter yellow for dark background */
+  }
 }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
 .section-header h2 { margin: 0; }
