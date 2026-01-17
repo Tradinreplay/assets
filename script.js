@@ -687,19 +687,26 @@
   
   if (document.getElementById('refreshBtn')) {
     document.getElementById('refreshBtn').addEventListener('click', async () => {
-      if (confirm('確定要重新整理資料嗎？這將會重新讀取資料庫。')) {
-         setStatus('正在重新讀取...');
-         // Optional: Clear caches if available to simulate hard refresh for data
-         if ('caches' in window) {
-           try {
-             // We don't delete all caches to avoid breaking PWA shell, but we can if "Delete web cache" is literal.
-             // For safety and speed, we rely on refetching data.
-           } catch(e) {}
+      if (confirm('確定要清除暫存並重新讀取資料嗎？')) {
+         setStatus('正在清除暫存並重新讀取...');
+         
+         // Clear Cookies
+         const cookies = document.cookie.split(";");
+         for (let i = 0; i < cookies.length; i++) {
+             const cookie = cookies[i];
+             const eqPos = cookie.indexOf("=");
+             const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+             document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
          }
+         
+         // Clear LocalStorage (to ensure thorough cleanup)
+         localStorage.clear();
+
+         // Reload data
          localRecords = [];
          renderRecords();
          await fetchRecords();
-         setStatus('資料已更新');
+         setStatus('暫存已清除，資料已更新');
       }
     });
   }
