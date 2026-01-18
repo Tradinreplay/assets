@@ -24,6 +24,7 @@
     isScrapped: document.getElementById('isScrapped'),
     saveBtn: document.getElementById('saveBtn'),
     resetBtn: document.getElementById('resetBtn'),
+    modifyModeBtn: document.getElementById('modifyModeBtn'),
     editingId: document.getElementById('editingId'),
     searchInput: document.getElementById('searchInput'),
     startDateFilter: document.getElementById('startDateFilter'),
@@ -40,15 +41,36 @@
 
   let localRecords = [];
   let mediaStream = null;
+  let isModifyMode = false;
 
   // --- Helper: Admin Check ---
   function checkAdmin() {
+    if (isModifyMode) return true;
     const input = prompt('請輸入管理者密碼以繼續操作：');
     if (input === ADMIN_PASSWORD) {
       return true;
     }
     alert('密碼錯誤，操作已取消。');
     return false;
+  }
+
+  function toggleModifyMode() {
+    if (isModifyMode) {
+      isModifyMode = false;
+      els.modifyModeBtn.textContent = '進入修改模式';
+      els.modifyModeBtn.style.backgroundColor = ''; // Reset style
+      setStatus('已退出修改模式');
+    } else {
+      const input = prompt('請輸入管理者密碼以進入修改模式：');
+      if (input === ADMIN_PASSWORD) {
+        isModifyMode = true;
+        els.modifyModeBtn.textContent = '退出修改模式';
+        els.modifyModeBtn.style.backgroundColor = '#d32f2f'; // Red to indicate active/danger
+        setStatus('已進入修改模式');
+      } else {
+        alert('密碼錯誤');
+      }
+    }
   }
 
   // --- Data Mapping Helpers ---
@@ -663,6 +685,7 @@
   // --- Events ---
   els.imageInput.addEventListener('change', onFileSelected);
   els.resetBtn.addEventListener('click', resetForm);
+  els.modifyModeBtn.addEventListener('click', toggleModifyMode);
   els.saveBtn.addEventListener('click', onSave);
   els.searchInput.addEventListener('input', () => renderRecords(els.searchInput.value));
   if (els.startDateFilter) els.startDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
