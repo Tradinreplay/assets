@@ -144,14 +144,8 @@
   }
 
   function formatDateTime(d = new Date()) {
-    // Force Taipei Time
-    const offset = 8; 
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const date = new Date(utc + (3600 * 1000 * offset));
-
     const pad = (n) => String(n).padStart(2, '0');
-    // Use getUTC* because 'date' is shifted to contain Taipei time in its UTC slots
-    return `${date.getUTCFullYear()}/${pad(date.getUTCMonth()+1)}/${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
   // --- Data Access ---

@@ -239,3 +239,23 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
     background: rgba(59, 130, 246, 0.1);
   }
 }
+
+/* Mobile-friendly Grid for Records Controls */
+#section-records .controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Full width elements */
+#section-records #searchInput,
+#section-records #importExcel,
+#section-records #refreshBtn {
+  grid-column: 1 / -1;
+}
+
+/* Ensure buttons fill the grid cell */
+#section-records .controls button {
+  width: 100%;
+}
