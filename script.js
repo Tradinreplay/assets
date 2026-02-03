@@ -168,35 +168,44 @@
   async function startCamera() {
     try {
       stopCamera();
+      
+      // Request permission explicitly first if needed, or just proceed
+      // Some browsers require a direct getUserMedia call to trigger the permission prompt
+      // before enumerateDevices works fully (with labels).
+      let stream;
+      try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      } catch (permErr) {
+          console.error('Initial permission request failed:', permErr);
+          alert('請允許使用相機權限以進行辨識。若您已拒絕，請至瀏覽器設定中開啟權限。');
+          return;
+      }
+
+      // If we got the stream, we can now enumerate devices effectively to find the best rear camera
+      if (stream) {
+          stream.getTracks().forEach(t => t.stop()); // Stop the initial stream
+      }
+
       const envId = await pickEnvironmentCamera();
       const constraints = {
         audio: false,
         video: envId ? { deviceId: { exact: envId }, width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 } } : { facingMode: { ideal: 'environment' }, width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 } }
       };
+      
       mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       els.video.srcObject = mediaStream;
       setStatus(envId ? '相機已開啟（後鏡頭）' : '相機已開啟');
       startAutoScan();
     } catch (err) {
       console.error('Camera error:', err);
-      setStatus('啟用後鏡頭失敗，嘗試使用預設鏡頭');
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-        els.video.srcObject = mediaStream;
-        setStatus('相機已開啟（後鏡頭）');
-          startAutoScan();
-      } catch (err2) {
-        console.error('Fallback camera error:', err2);
-        try {
-          mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          els.video.srcObject = mediaStream;
-          setStatus('相機已開啟（預設鏡頭）');
-          startAutoScan();
-        } catch (err3) {
-          console.error('Default camera error:', err3);
-          setStatus('無法啟用相機，請檢查權限或裝置');
-        }
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          alert('無法開啟相機：存取被拒絕。請檢查瀏覽器權限設定。');
+      } else if (err.name === 'NotFoundError') {
+          alert('找不到相機裝置。');
+      } else {
+          alert('開啟相機時發生錯誤：' + err.message);
       }
+      setStatus('無法啟用相機');
     }
   }
 
