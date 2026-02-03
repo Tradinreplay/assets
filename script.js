@@ -85,35 +85,49 @@
 
   // --- Data Mapping Helpers ---
   function toLocalRecord(dbRecord) {
+    const {
+      id, asset_number, device_name, serial_number, unit, is_managed,
+      scan_date_time, scan_timestamp, is_scrapped, scrap_date_time, scrap_by,
+      ...rest
+    } = dbRecord;
+
     return {
-      id: dbRecord.id,
-      assetNumber: dbRecord.asset_number,
-      deviceName: dbRecord.device_name,
-      serialNumber: dbRecord.serial_number,
-      unit: dbRecord.unit,
-      isManaged: dbRecord.is_managed,
-      scanDateTime: dbRecord.scan_date_time,
-      scanTimestamp: dbRecord.scan_timestamp,
-      isScrapped: dbRecord.is_scrapped,
-      scrapDateTime: dbRecord.scrap_date_time,
-      scrapBy: dbRecord.scrap_by
+      id,
+      assetNumber: asset_number,
+      deviceName: device_name,
+      serialNumber: serial_number,
+      unit: unit,
+      isManaged: is_managed,
+      scanDateTime: scan_date_time,
+      scanTimestamp: scan_timestamp,
+      isScrapped: is_scrapped,
+      scrapDateTime: scrap_date_time,
+      scrapBy: scrap_by,
+      ...rest
     };
   }
 
   function toDbRecord(r) {
+    const {
+      id, assetNumber, deviceName, serialNumber, unit, isManaged,
+      scanDateTime, scanTimestamp, isScrapped, scrapDateTime, scrapBy,
+      ...rest
+    } = r;
+
     return {
-      id: r.id,
-      asset_number: r.assetNumber,
-      device_name: r.deviceName,
-      serial_number: r.serialNumber,
-      unit: r.unit,
-      is_managed: r.isManaged,
-      scan_date_time: r.scanDateTime,
-      scan_timestamp: r.scanTimestamp,
-      is_scrapped: r.isScrapped,
-      scrap_date_time: r.scrapDateTime,
-      scrap_by: r.scrapBy,
-      updated_at: new Date().toISOString()
+      id,
+      asset_number: assetNumber,
+      device_name: deviceName,
+      serial_number: serialNumber,
+      unit: unit,
+      is_managed: isManaged,
+      scan_date_time: scanDateTime,
+      scan_timestamp: scanTimestamp,
+      is_scrapped: isScrapped,
+      scrap_date_time: scrapDateTime,
+      scrap_by: scrapBy,
+      updated_at: new Date().toISOString(),
+      ...rest
     };
   }
 
@@ -437,38 +451,60 @@
     // Render Cards List
     els.recordsListContainer.innerHTML = filtered.map(r => {
       const cardClass = !r.isScrapped ? 'record-card not-scrapped' : 'record-card';
-      const assetNumClass = r.isManaged ? 'asset-number-managed' : '';
       
+      const labelMap = {
+        assetNumber: '資產編號',
+        deviceName: '設備名稱',
+        serialNumber: '機身編號',
+        unit: '單位',
+        isManaged: '列管資產',
+        scanDateTime: '掃描時間',
+        isScrapped: '完成報廢',
+        scrapDateTime: '報廢時間',
+        scrapBy: '報廢人',
+        created_at: '建立時間',
+        updated_at: '更新時間'
+      };
+
+      const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy'];
+      const allKeys = Object.keys(r);
+      const otherKeys = allKeys.filter(k => !knownOrder.includes(k) && k !== 'id' && k !== 'scanTimestamp');
+      const sortedKeys = [...knownOrder, ...otherKeys];
+
+      let rowsHtml = '';
+      sortedKeys.forEach(key => {
+        const val = r[key];
+        // Hide internal or empty fields
+        if (key === 'id' || key === 'scanTimestamp') return;
+        if (val === null || val === undefined || val === '') return;
+
+        let displayVal = escapeHtml(String(val));
+        const label = labelMap[key] || key;
+
+        // Special formatting
+        if (key === 'isManaged') {
+             displayVal = val ? '<span class="tag tag-managed">是</span>' : '否';
+        } else if (key === 'isScrapped') {
+             displayVal = val ? '<span class="tag tag-scrapped">是</span>' : '否';
+        } else if (typeof val === 'boolean') {
+             displayVal = val ? '是' : '否';
+        }
+
+        // Highlight Asset Number
+        const valueClass = (key === 'assetNumber' && r.isManaged) ? 'asset-number-managed' : '';
+        const style = (key === 'assetNumber') ? 'font-weight: bold; font-size: 1.1em;' : '';
+
+        rowsHtml += `
+          <div class="card-row">
+            <span class="card-label">${escapeHtml(label)}</span>
+            <span class="card-value ${valueClass}" style="${style}">${displayVal}</span>
+          </div>
+        `;
+      });
+
       return `
         <div class="${cardClass}" data-id="${r.id}">
-          <div class="card-row header-row">
-            <span class="card-label">資產編號</span>
-            <span class="card-value ${assetNumClass}" style="font-weight: bold; font-size: 1.1em;">${escapeHtml(r.assetNumber)}</span>
-          </div>
-          <div class="card-row">
-            <span class="card-label">設備名稱</span>
-            <span class="card-value">${escapeHtml(r.deviceName)}</span>
-          </div>
-          <div class="card-row">
-            <span class="card-label">單位</span>
-            <span class="card-value">${escapeHtml(r.unit)}</span>
-          </div>
-          <div class="card-row">
-            <span class="card-label">掃描時間</span>
-            <span class="card-value">${escapeHtml(r.scanDateTime)}</span>
-          </div>
-          <div class="card-row">
-             <span class="card-label">狀態</span>
-             <span class="card-value">
-               ${r.isManaged ? '<span class="tag tag-managed">列管</span>' : ''}
-               ${r.isScrapped ? '<span class="tag tag-scrapped">已報廢</span>' : '<span class="tag tag-active">未報廢</span>'}
-             </span>
-          </div>
-          ${r.isScrapped ? `
-          <div class="card-row">
-            <span class="card-label">報廢資訊</span>
-            <span class="card-value">${escapeHtml(r.scrapDateTime)} / ${escapeHtml(r.scrapBy)}</span>
-          </div>` : ''}
+          ${rowsHtml}
           <div class="card-actions">
             <button class="action-btn edit" data-action="edit">編輯</button>
             <button class="action-btn delete" data-action="delete">刪除</button>
@@ -590,7 +626,7 @@
 
     // Update local
     const idx = records.findIndex(r => r.id === record.id);
-    if (idx >= 0) records[idx] = record; else records.push(record);
+    if (idx >= 0) records[idx] = { ...records[idx], ...record }; else records.push(record);
     localRecords = records;
     
     renderRecords(els.searchInput.value);
