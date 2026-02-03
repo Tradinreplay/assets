@@ -126,7 +126,7 @@
       is_scrapped: isScrapped,
       scrap_date_time: scrapDateTime,
       scrap_by: scrapBy,
-      updated_at: new Date().toISOString(),
+      updated_at: getTaipeiNow().toISOString().replace('Z', '+08:00'),
       ...rest
     };
   }
@@ -135,9 +135,22 @@
     els.status.textContent = '狀態：' + text;
   }
 
+  function getTaipeiNow() {
+    const d = new Date();
+    const offset = 8; // Taipei UTC+8
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    return new Date(utc + (3600 * 1000 * offset));
+  }
+
   function formatDateTime(d = new Date()) {
+    // Force Taipei Time
+    const offset = 8; 
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const date = new Date(utc + (3600 * 1000 * offset));
+
     const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    // Use getUTC* because 'date' is shifted to contain Taipei time in its UTC slots
+    return `${date.getUTCFullYear()}/${pad(date.getUTCMonth()+1)}/${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
   }
 
   // --- Data Access ---
@@ -744,7 +757,7 @@
               scrapBy: (typeof rec.isScrapped === 'boolean'
                 ? (rec.isScrapped ? ((rec.scrapBy || keep.scrapBy || '').trim()) : '')
                 : ((rec.scrapBy || keep.scrapBy || '').trim())),
-              updated_at: new Date().toISOString()
+              updated_at: getTaipeiNow().toISOString().replace('Z', '+08:00')
             };
             toUpsert.push(updatedRec);
             records = records.map(r => r.assetNumber === updatedRec.assetNumber ? updatedRec : r);
