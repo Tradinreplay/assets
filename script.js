@@ -37,6 +37,16 @@
     importBtn: document.getElementById('importBtn'),
     installBtn: document.getElementById('installBtn'),
     recordsTableBody: document.querySelector('#recordsTable tbody'),
+    recordsListContainer: document.getElementById('records-list-container'),
+    homeView: document.getElementById('home-view'),
+    appView: document.getElementById('app-view'),
+    sectionCamera: document.getElementById('section-camera'),
+    sectionForm: document.getElementById('section-form'),
+    sectionRecords: document.getElementById('section-records'),
+    btnAutoScan: document.getElementById('btn-auto-scan'),
+    btnManualInput: document.getElementById('btn-manual-input'),
+    btnRecords: document.getElementById('btn-records'),
+    btnBackHome: document.getElementById('btn-back-home'),
   };
 
   let localRecords = [];
@@ -414,6 +424,49 @@
         </td>
       </tr>`;
     }).join('');
+
+    // Render Cards List
+    els.recordsListContainer.innerHTML = filtered.map(r => {
+      const cardClass = !r.isScrapped ? 'record-card not-scrapped' : 'record-card';
+      const assetNumClass = r.isManaged ? 'asset-number-managed' : '';
+      
+      return `
+        <div class="${cardClass}" data-id="${r.id}">
+          <div class="card-row header-row">
+            <span class="card-label">資產編號</span>
+            <span class="card-value ${assetNumClass}" style="font-weight: bold; font-size: 1.1em;">${escapeHtml(r.assetNumber)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">設備名稱</span>
+            <span class="card-value">${escapeHtml(r.deviceName)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">單位</span>
+            <span class="card-value">${escapeHtml(r.unit)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-label">掃描時間</span>
+            <span class="card-value">${escapeHtml(r.scanDateTime)}</span>
+          </div>
+          <div class="card-row">
+             <span class="card-label">狀態</span>
+             <span class="card-value">
+               ${r.isManaged ? '<span class="tag tag-managed">列管</span>' : ''}
+               ${r.isScrapped ? '<span class="tag tag-scrapped">已報廢</span>' : '<span class="tag tag-active">未報廢</span>'}
+             </span>
+          </div>
+          ${r.isScrapped ? `
+          <div class="card-row">
+            <span class="card-label">報廢資訊</span>
+            <span class="card-value">${escapeHtml(r.scrapDateTime)} / ${escapeHtml(r.scrapBy)}</span>
+          </div>` : ''}
+          <div class="card-actions">
+            <button class="action-btn edit" data-action="edit">編輯</button>
+            <button class="action-btn delete" data-action="delete">刪除</button>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   function escapeHtml(str) {
@@ -425,8 +478,9 @@
   async function handleTableClick(ev) {
     const btn = ev.target.closest('button');
     if (!btn) return;
-    const tr = ev.target.closest('tr');
-    const id = tr?.dataset?.id;
+    // Check if click came from table tr or card div
+    const container = ev.target.closest('tr') || ev.target.closest('.record-card');
+    const id = container?.dataset?.id;
     if (!id) return;
     const action = btn.dataset.action;
     
@@ -682,7 +736,42 @@
     reader.readAsArrayBuffer(file);
   }
 
+  // --- View Switching ---
+  function showHome() {
+    stopCamera();
+    els.homeView.style.display = 'flex';
+    els.appView.style.display = 'none';
+  }
+
+  function showApp(mode) {
+    els.homeView.style.display = 'none';
+    els.appView.style.display = 'block';
+    
+    // Hide all sections first
+    els.sectionCamera.style.display = 'none';
+    els.sectionForm.style.display = 'none';
+    els.sectionRecords.style.display = 'none';
+
+    if (mode === 'auto') {
+      els.sectionCamera.style.display = 'block';
+      els.sectionForm.style.display = 'block';
+      startCamera();
+    } else if (mode === 'manual') {
+      els.sectionForm.style.display = 'block';
+      stopCamera();
+    } else if (mode === 'records') {
+      els.sectionRecords.style.display = 'block';
+      stopCamera();
+    }
+  }
+
   // --- Events ---
+  // View Switching Events
+  els.btnAutoScan.addEventListener('click', () => showApp('auto'));
+  els.btnManualInput.addEventListener('click', () => showApp('manual'));
+  els.btnRecords.addEventListener('click', () => showApp('records'));
+  els.btnBackHome.addEventListener('click', showHome);
+
   els.imageInput.addEventListener('change', onFileSelected);
   els.resetBtn.addEventListener('click', resetForm);
   els.modifyModeBtn.addEventListener('click', toggleModifyMode);
@@ -704,6 +793,7 @@
     const isDup = getRecords().some(r => r.assetNumber === num && r.id !== els.editingId.value);
     if (isDup) setStatus('偵測到重複資產編號'); else setStatus('就緒');
   });
+  document.getElementById('records-list-container').addEventListener('click', handleTableClick);
   document.getElementById('recordsTable').addEventListener('click', handleTableClick);
   els.exportBtn.addEventListener('click', exportToExcel);
   if (els.importBtn) els.importBtn.addEventListener('click', onImport);
@@ -785,7 +875,7 @@
 
   // Start
   els.scanDateTime.value = '';
-  startCamera();
+  // startCamera();
   window.addEventListener('beforeunload', stopCamera);
   
   // Initial Sync

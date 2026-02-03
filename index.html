@@ -22,8 +22,37 @@
   <!-- header removed to save vertical space -->
 
   <main>
-    <section class="card">
-      <h2>影像來源</h2>
+    <div id="home-view" class="home-view">
+      <button id="btn-auto-scan" class="home-btn">
+        <div class="btn-content">
+          <span class="icon">📷</span>
+          <span class="text">自動辨識</span>
+        </div>
+        <span class="desc">開啟相機自動填表</span>
+      </button>
+      <button id="btn-manual-input" class="home-btn">
+        <div class="btn-content">
+          <span class="icon">📝</span>
+          <span class="text">手動輸入</span>
+        </div>
+        <span class="desc">依欄位手動輸入</span>
+      </button>
+      <button id="btn-records" class="home-btn">
+        <div class="btn-content">
+          <span class="icon">🔍</span>
+          <span class="text">紀錄查詢</span>
+        </div>
+        <span class="desc">查詢與匯出資料</span>
+      </button>
+    </div>
+
+    <div id="app-view" style="display: none;">
+      <div class="nav-bar">
+        <button id="btn-back-home" class="back-btn">⬅ 回首頁</button>
+      </div>
+
+      <section id="section-camera" class="card">
+        <h2>影像來源</h2>
       <div class="preview">
         <video id="video" autoplay playsinline></video>
         <canvas id="canvas" width="640" height="480"></canvas>
@@ -112,7 +141,8 @@
         <button id="importBtn">匯入</button>
         <button id="refreshBtn" class="refresh-btn">重新整理</button>
       </div>
-      <div class="table-wrap">
+      <div id="records-list-container" class="records-list"></div>
+      <div class="table-wrap" style="display: none;">
         <table id="recordsTable">
           <thead>
             <tr>
@@ -132,6 +162,7 @@
         </table>
       </div>
     </section>
+    </div>
   </main>
 
   <footer>
