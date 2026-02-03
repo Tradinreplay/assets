@@ -18,7 +18,7 @@ footer { padding: 16px 24px; color: #666; }
 .file-label input { display: inline-block; }
 
 .preview { display: grid; grid-template-columns: minmax(200px, 1fr); gap: 12px; align-items: start; }
-video, canvas { width: 100%; max-width: 240px; height: auto; background: #0b0b0b; border-radius: 8px; }
+video, canvas { width: 100%; max-width: 160px; height: auto; background: #0b0b0b; border-radius: 8px; }
 canvas { display: none; }
 .status { margin-top: 10px; color: #888; }
 
@@ -145,8 +145,8 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
   .card-actions { border-top-color: #334155; }
 }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px; }
-.section-header h2 { margin: 0; }
-.section-header button { background: #1f6feb; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+.section-header h2 { margin: 0; font-size: 14px; }
+.section-header button { background: #1f6feb; color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }
 
 /* Home View Styles */
 .home-view {
