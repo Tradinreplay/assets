@@ -476,14 +476,14 @@
 
       const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy'];
       const allKeys = Object.keys(r);
-      const otherKeys = allKeys.filter(k => !knownOrder.includes(k) && k !== 'id' && k !== 'scanTimestamp');
+      const otherKeys = allKeys.filter(k => !knownOrder.includes(k) && k !== 'id' && k !== 'scanTimestamp' && k !== 'created_at' && k !== 'updated_at');
       const sortedKeys = [...knownOrder, ...otherKeys];
 
       let rowsHtml = '';
       sortedKeys.forEach(key => {
         const val = r[key];
         // Hide internal or empty fields
-        if (key === 'id' || key === 'scanTimestamp') return;
+        if (key === 'id' || key === 'scanTimestamp' || key === 'created_at' || key === 'updated_at') return;
         if (val === null || val === undefined || val === '') return;
 
         let displayVal = escapeHtml(String(val));
