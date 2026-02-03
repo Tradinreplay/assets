@@ -47,6 +47,7 @@
     btnManualInput: document.getElementById('btn-manual-input'),
     btnRecords: document.getElementById('btn-records'),
     btnBackHome: document.getElementById('btn-back-home'),
+    fixTimeBtn: document.getElementById('fixTimeBtn'),
   };
 
   let localRecords = [];
@@ -556,6 +557,7 @@
       els.isScrapped.checked = !!rec.isScrapped;
       els.editingId.value = rec.id;
       setStatus('已載入紀錄至表單，可編修後保存');
+      navigateToApp('manual'); // Switch to manual view (Form)
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (action === 'delete') {
       // Admin check
@@ -823,12 +825,32 @@
     }
   }
 
+  // Handle History API for Back Button
+  window.addEventListener('popstate', (e) => {
+    if (e.state && e.state.view === 'app') {
+       // If somehow we popped into app view (e.g. forward), restore it
+       // But typically we pop to home (null or view='home')
+       showApp(e.state.mode);
+    } else {
+       // Default to home
+       showHome();
+    }
+  });
+
+  // Modify View Switching to use History
+  function navigateToApp(mode) {
+    history.pushState({ view: 'app', mode: mode }, '', '#app');
+    showApp(mode);
+  }
+
   // --- Events ---
   // View Switching Events
-  els.btnAutoScan.addEventListener('click', () => showApp('auto'));
-  els.btnManualInput.addEventListener('click', () => showApp('manual'));
-  els.btnRecords.addEventListener('click', () => showApp('records'));
-  els.btnBackHome.addEventListener('click', showHome);
+  els.btnAutoScan.addEventListener('click', () => navigateToApp('auto'));
+  els.btnManualInput.addEventListener('click', () => navigateToApp('manual'));
+  els.btnRecords.addEventListener('click', () => navigateToApp('records'));
+  els.btnBackHome.addEventListener('click', () => {
+     history.back(); // This will trigger popstate -> showHome
+  });
 
   els.imageInput.addEventListener('change', onFileSelected);
   els.resetBtn.addEventListener('click', resetForm);
@@ -855,6 +877,102 @@
   document.getElementById('recordsTable').addEventListener('click', handleTableClick);
   els.exportBtn.addEventListener('click', exportToExcel);
   if (els.importBtn) els.importBtn.addEventListener('click', onImport);
+
+  // --- Fix Time Tool ---
+  if (els.fixTimeBtn) {
+    els.fixTimeBtn.addEventListener('click', async () => {
+      // Admin check
+      if (!checkAdmin()) return;
+      
+      if (!confirm('警告：這將會把「所有」資料庫中的紀錄時間（掃描時間與報廢時間）加上 8 小時，並將 updated_at 更新為現在的台北時間。\n\n請只在確定您的舊資料是 UTC 時間（比台北慢8小時）時執行此操作。\n\n確定要繼續嗎？')) return;
+
+      setStatus('正在讀取所有資料...');
+      const { data: allRecords, error } = await supabase.from('asset_records').select('*');
+      
+      if (error) {
+        alert('讀取失敗: ' + error.message);
+        return;
+      }
+
+      if (!allRecords || allRecords.length === 0) {
+        alert('沒有資料可更新');
+        return;
+      }
+
+      setStatus(`準備更新 ${allRecords.length} 筆資料...`);
+      let updatedCount = 0;
+      const updates = [];
+
+      for (const r of allRecords) {
+        const updatesForRec = { id: r.id };
+        let changed = false;
+
+        // Helper to add 8h to a date string YYYY/MM/DD HH:mm
+        const shift8h = (str) => {
+           if (!str) return str;
+           // Try parsing
+           const m = str.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+           if (!m) return str; // Can't parse, leave it
+           
+           const [_, y, mo, d, h, mi, se] = m;
+           // Create date object as if it were UTC (or just add 8 hours to hours)
+           // If we assume the string is literally "12:00" and we want "20:00"
+           const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0));
+           date.setHours(date.getHours() + 8);
+           
+           const pad = (n) => String(n).padStart(2, '0');
+           return `${date.getFullYear()}/${pad(date.getMonth()+1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        };
+
+        if (r.scan_date_time) {
+          const newDt = shift8h(r.scan_date_time);
+          if (newDt !== r.scan_date_time) {
+             updatesForRec.scan_date_time = newDt;
+             // Also update timestamp number if it exists
+             // We can just let deriveTimestamp handle it on next load, or update it here.
+             // But 'scan_timestamp' column might be used.
+             const m = newDt.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+             if (m) {
+                const [_, y, mo, d, h, mi, se] = m;
+                updatesForRec.scan_timestamp = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0)).getTime();
+             }
+             changed = true;
+          }
+        }
+
+        if (r.is_scrapped && r.scrap_date_time) {
+           const newScrapDt = shift8h(r.scrap_date_time);
+           if (newScrapDt !== r.scrap_date_time) {
+              updatesForRec.scrap_date_time = newScrapDt;
+              changed = true;
+           }
+        }
+
+        if (changed) {
+           updatesForRec.updated_at = getTaipeiNow().toISOString().replace('Z', '+08:00');
+           updates.push(updatesForRec);
+        }
+      }
+
+      if (updates.length === 0) {
+        setStatus('沒有資料需要變更');
+        return;
+      }
+
+      setStatus(`正在寫入 ${updates.length} 筆更新...`);
+      // Supabase upsert batch
+      const { error: upsertError } = await supabase.from('asset_records').upsert(updates);
+      
+      if (upsertError) {
+         console.error(upsertError);
+         alert('更新失敗: ' + upsertError.message);
+         setStatus('更新失敗');
+      } else {
+         setStatus(`成功校正 ${updates.length} 筆資料`);
+         fetchRecords(); // Reload
+      }
+    });
+  }
   
   if (document.getElementById('refreshBtn')) {
     document.getElementById('refreshBtn').addEventListener('click', async () => {
