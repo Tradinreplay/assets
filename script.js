@@ -21,6 +21,7 @@
     scanDateTime: document.getElementById('scanDateTime'),
     scrapDateTime: document.getElementById('scrapDateTime'),
     scrapBy: document.getElementById('scrapBy'),
+    remarks: document.getElementById('remarks'),
     isScrapped: document.getElementById('isScrapped'),
     saveBtn: document.getElementById('saveBtn'),
     resetBtn: document.getElementById('resetBtn'),
@@ -87,7 +88,7 @@
   function toLocalRecord(dbRecord) {
     const {
       id, asset_number, device_name, serial_number, unit, is_managed,
-      scan_date_time, scan_timestamp, is_scrapped, scrap_date_time, scrap_by,
+      scan_date_time, scan_timestamp, is_scrapped, scrap_date_time, scrap_by, remarks,
       ...rest
     } = dbRecord;
 
@@ -103,6 +104,7 @@
       isScrapped: is_scrapped,
       scrapDateTime: scrap_date_time,
       scrapBy: scrap_by,
+      remarks: remarks,
       ...rest
     };
   }
@@ -110,7 +112,7 @@
   function toDbRecord(r) {
     const {
       id, assetNumber, deviceName, serialNumber, unit, isManaged,
-      scanDateTime, scanTimestamp, isScrapped, scrapDateTime, scrapBy,
+      scanDateTime, scanTimestamp, isScrapped, scrapDateTime, scrapBy, remarks,
       ...rest
     } = r;
 
@@ -126,6 +128,7 @@
       is_scrapped: isScrapped,
       scrap_date_time: scrapDateTime,
       scrap_by: scrapBy,
+      remarks: remarks,
       updated_at: getTaipeiNow().toISOString().replace('Z', '+08:00'),
       ...rest
     };
@@ -377,9 +380,10 @@
     els.isManaged.checked = false;
     els.scanDateTime.value = '';
     if (els.scrapDateTime) els.scrapDateTime.value = '';
-     if (els.scrapBy) els.scrapBy.value = '';
-     els.isScrapped.checked = false;
-     els.editingId.value = '';
+    if (els.scrapBy) els.scrapBy.value = '';
+    if (els.remarks) els.remarks.value = '';
+    els.isScrapped.checked = false;
+    els.editingId.value = '';
     setStatus('表單已清除');
     startAutoScan();
   }
@@ -448,6 +452,7 @@
         <td>${r.isScrapped ? '是' : '否'}</td>
         <td>${escapeHtml(r.scrapDateTime)}</td>
         <td>${escapeHtml(r.scrapBy)}</td>
+        <td>${escapeHtml(r.remarks)}</td>
         <td>
           <button class="action-btn edit" data-action="edit">編輯</button>
           <button class="action-btn delete" data-action="delete">刪除</button>
@@ -469,11 +474,12 @@
         isScrapped: '完成報廢',
         scrapDateTime: '報廢時間',
         scrapBy: '報廢人',
+        remarks: '備註',
         created_at: '建立時間',
         updated_at: '更新時間'
       };
 
-      const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy'];
+      const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy', 'remarks'];
       const allKeys = Object.keys(r);
       const otherKeys = allKeys.filter(k => !knownOrder.includes(k) && k !== 'id' && k !== 'scanTimestamp' && k !== 'created_at' && k !== 'updated_at');
       const sortedKeys = [...knownOrder, ...otherKeys];
@@ -547,6 +553,7 @@
       els.scanDateTime.value = rec.scanDateTime || '';
       if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
       if (els.scrapBy) els.scrapBy.value = rec.scrapBy || '';
+      if (els.remarks) els.remarks.value = rec.remarks || '';
       els.isScrapped.checked = !!rec.isScrapped;
       els.editingId.value = rec.id;
       setStatus('已載入紀錄至表單，可編修後保存');
@@ -591,6 +598,7 @@
         ? (els.scrapDateTime?.value?.trim() || formatDateTime(new Date()))
         : ''),
       scrapBy: (els.isScrapped.checked ? (els.scrapBy?.value?.trim() || '') : ''),
+      remarks: els.remarks?.value?.trim() || '',
     };
 
     if (!record.assetNumber) {
@@ -654,6 +662,7 @@
       '完成報廢': r.isScrapped ? '是' : '否',
       '報廢日期時間': r.scrapDateTime || '',
       '報廢人': r.scrapBy || '',
+      '備註': r.remarks || '',
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -692,7 +701,8 @@
     const scrapDateTime = scrapDateTimeRaw || '';
     const scrapByRaw = String(row['報廢人'] ?? row['scrapBy'] ?? row['Scrapped By'] ?? row['Disposed By'] ?? '').trim();
     const scrapBy = scrapByRaw || '';
-    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime, scrapDateTime, scrapBy };
+    const remarks = String(row['備註'] ?? row['remarks'] ?? row['Remarks'] ?? row['comment'] ?? row['note'] ?? '').trim();
+    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime, scrapDateTime, scrapBy, remarks };
     rec.scanTimestamp = deriveTimestamp(scanDateTime);
     return rec;
   }
