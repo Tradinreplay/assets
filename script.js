@@ -190,46 +190,53 @@
   }
 
   async function startCamera() {
+    stopCamera();
+
+    // Constraints for rear camera
+    // Try ideal resolution first, but allow fallback
+    const constraints = {
+      audio: false,
+      video: { 
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+
     try {
-      stopCamera();
-      
-      // Request permission explicitly first if needed, or just proceed
-      // Some browsers require a direct getUserMedia call to trigger the permission prompt
-      // before enumerateDevices works fully (with labels).
-      let stream;
-      try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-      } catch (permErr) {
-          console.error('Initial permission request failed:', permErr);
-          alert('請允許使用相機權限以進行辨識。若您已拒絕，請至瀏覽器設定中開啟權限。');
-          return;
-      }
-
-      // If we got the stream, we can now enumerate devices effectively to find the best rear camera
-      if (stream) {
-          stream.getTracks().forEach(t => t.stop()); // Stop the initial stream
-      }
-
-      const envId = await pickEnvironmentCamera();
-      const constraints = {
-        audio: false,
-        video: envId ? { deviceId: { exact: envId }, width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 } } : { facingMode: { ideal: 'environment' }, width: { ideal: 640, max: 640 }, height: { ideal: 480, max: 480 } }
-      };
-      
       mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      els.video.srcObject = mediaStream;
-      setStatus(envId ? '相機已開啟（後鏡頭）' : '相機已開啟');
-      startAutoScan();
     } catch (err) {
-      console.error('Camera error:', err);
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          alert('無法開啟相機：存取被拒絕。請檢查瀏覽器權限設定。');
-      } else if (err.name === 'NotFoundError') {
-          alert('找不到相機裝置。');
-      } else {
-          alert('開啟相機時發生錯誤：' + err.message);
+      console.warn('Initial camera request failed, trying fallback constraints...', err);
+      // Fallback: minimal constraints
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          audio: false, 
+          video: { facingMode: 'environment' } 
+        });
+      } catch (err2) {
+        console.error('Camera error:', err2);
+        if (err2.name === 'NotAllowedError' || err2.name === 'PermissionDeniedError') {
+            alert('無法開啟相機：存取被拒絕。請檢查瀏覽器權限設定。');
+        } else if (err2.name === 'NotFoundError') {
+            alert('找不到相機裝置。');
+        } else {
+            alert('開啟相機時發生錯誤：' + err2.message);
+        }
+        setStatus('無法啟用相機');
+        return;
       }
-      setStatus('無法啟用相機');
+    }
+
+    if (mediaStream) {
+      els.video.srcObject = mediaStream;
+      // iOS specific: explicit play() is often required even with autoplay
+      try {
+        await els.video.play();
+      } catch (e) {
+        console.error('Video play failed:', e);
+      }
+      setStatus('相機已開啟');
+      startAutoScan();
     }
   }
 
