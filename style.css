@@ -203,25 +203,8 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* Nav Bar */
-.nav-bar {
-  margin-bottom: 16px;
-}
+/* Nav Bar removed */
 
-.back-btn {
-  background: transparent;
-  border: 1px solid #1f6feb;
-  color: #1f6feb;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.2s;
-}
-
-.back-btn:hover {
-  background: rgba(31, 111, 235, 0.1);
-}
 
 @media (prefers-color-scheme: dark) {
   .home-btn {
@@ -230,13 +213,6 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
   }
   .home-btn:hover {
     background: #334155;
-  }
-  .back-btn {
-    border-color: #3b82f6;
-    color: #3b82f6;
-  }
-  .back-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
   }
 }
 

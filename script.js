@@ -46,7 +46,6 @@
     btnAutoScan: document.getElementById('btn-auto-scan'),
     btnManualInput: document.getElementById('btn-manual-input'),
     btnRecords: document.getElementById('btn-records'),
-    btnBackHome: document.getElementById('btn-back-home'),
     fixTimeBtn: document.getElementById('fixTimeBtn'),
   };
 
@@ -842,9 +841,6 @@
   els.btnAutoScan.addEventListener('click', () => navigateToApp('auto'));
   els.btnManualInput.addEventListener('click', () => navigateToApp('manual'));
   els.btnRecords.addEventListener('click', () => navigateToApp('records'));
-  els.btnBackHome.addEventListener('click', () => {
-     history.back(); // This will trigger popstate -> showHome
-  });
 
   els.imageInput.addEventListener('change', onFileSelected);
   els.resetBtn.addEventListener('click', resetForm);
