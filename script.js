@@ -50,7 +50,6 @@
     btnAutoScan: document.getElementById('btn-auto-scan'),
     btnManualInput: document.getElementById('btn-manual-input'),
     btnRecords: document.getElementById('btn-records'),
-    fixTimeBtn: document.getElementById('fixTimeBtn'),
   };
 
   let localRecords = [];
@@ -513,10 +512,12 @@
         `;
       });
 
+      const titleClass = r.isManaged ? 'header-title asset-number-managed' : 'header-title';
+
       return `
         <div class="record-card ${statusClass}" data-id="${r.id}">
           <div class="card-header">
-            <span class="header-title">${escapeHtml(r.assetNumber)}</span>
+            <span class="${titleClass}">${escapeHtml(r.assetNumber)}</span>
             <span class="header-unit">${escapeHtml(r.unit)}</span>
           </div>
           <div class="card-details">
@@ -620,6 +621,11 @@
 
     if (!record.assetNumber) {
       alert('請先辨識或輸入資產編號');
+      return;
+    }
+
+    if (record.isScrapped && !record.scrapBy) {
+      alert('勾選報廢時，「報廢人」為必填欄位');
       return;
     }
 
@@ -904,102 +910,6 @@
   els.exportBtn.addEventListener('click', exportToExcel);
   if (els.importBtn) els.importBtn.addEventListener('click', onImport);
 
-  // --- Fix Time Tool ---
-  if (els.fixTimeBtn) {
-    els.fixTimeBtn.addEventListener('click', async () => {
-      // Admin check
-      if (!checkAdmin()) return;
-      
-      if (!confirm('警告：這將會把「所有」資料庫中的紀錄時間（掃描時間與報廢時間）加上 8 小時，並將 updated_at 更新為現在的台北時間。\n\n請只在確定您的舊資料是 UTC 時間（比台北慢8小時）時執行此操作。\n\n確定要繼續嗎？')) return;
-
-      setStatus('正在讀取所有資料...');
-      const { data: allRecords, error } = await supabase.from('asset_records').select('*');
-      
-      if (error) {
-        alert('讀取失敗: ' + error.message);
-        return;
-      }
-
-      if (!allRecords || allRecords.length === 0) {
-        alert('沒有資料可更新');
-        return;
-      }
-
-      setStatus(`準備更新 ${allRecords.length} 筆資料...`);
-      let updatedCount = 0;
-      const updates = [];
-
-      for (const r of allRecords) {
-        const updatesForRec = { id: r.id };
-        let changed = false;
-
-        // Helper to add 8h to a date string YYYY/MM/DD HH:mm
-        const shift8h = (str) => {
-           if (!str) return str;
-           // Try parsing
-           const m = str.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
-           if (!m) return str; // Can't parse, leave it
-           
-           const [_, y, mo, d, h, mi, se] = m;
-           // Create date object as if it were UTC (or just add 8 hours to hours)
-           // If we assume the string is literally "12:00" and we want "20:00"
-           const date = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0));
-           date.setHours(date.getHours() + 8);
-           
-           const pad = (n) => String(n).padStart(2, '0');
-           return `${date.getFullYear()}/${pad(date.getMonth()+1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-        };
-
-        if (r.scan_date_time) {
-          const newDt = shift8h(r.scan_date_time);
-          if (newDt !== r.scan_date_time) {
-             updatesForRec.scan_date_time = newDt;
-             // Also update timestamp number if it exists
-             // We can just let deriveTimestamp handle it on next load, or update it here.
-             // But 'scan_timestamp' column might be used.
-             const m = newDt.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
-             if (m) {
-                const [_, y, mo, d, h, mi, se] = m;
-                updatesForRec.scan_timestamp = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(se || 0)).getTime();
-             }
-             changed = true;
-          }
-        }
-
-        if (r.is_scrapped && r.scrap_date_time) {
-           const newScrapDt = shift8h(r.scrap_date_time);
-           if (newScrapDt !== r.scrap_date_time) {
-              updatesForRec.scrap_date_time = newScrapDt;
-              changed = true;
-           }
-        }
-
-        if (changed) {
-           updatesForRec.updated_at = getTaipeiNow().toISOString().replace('Z', '+08:00');
-           updates.push(updatesForRec);
-        }
-      }
-
-      if (updates.length === 0) {
-        setStatus('沒有資料需要變更');
-        return;
-      }
-
-      setStatus(`正在寫入 ${updates.length} 筆更新...`);
-      // Supabase upsert batch
-      const { error: upsertError } = await supabase.from('asset_records').upsert(updates);
-      
-      if (upsertError) {
-         console.error(upsertError);
-         alert('更新失敗: ' + upsertError.message);
-         setStatus('更新失敗');
-      } else {
-         setStatus(`成功校正 ${updates.length} 筆資料`);
-         fetchRecords(); // Reload
-      }
-    });
-  }
-  
   if (document.getElementById('refreshBtn')) {
     document.getElementById('refreshBtn').addEventListener('click', async () => {
       if (confirm('確定要登出並清除所有暫存資料嗎？網頁將會重新載入。')) {

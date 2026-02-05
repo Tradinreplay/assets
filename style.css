@@ -43,7 +43,7 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
 
 /* Managed Asset Number Highlight */
 .asset-number-managed {
-  color: #d97706; /* Darker yellow/orange for visibility on light background */
+  color: #dc2626; /* Red */
   font-weight: 700;
 }
 .asset-number-bold {
@@ -65,7 +65,7 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
   
   /* Managed Asset Number Highlight Dark Mode */
   .asset-number-managed {
-    color: #fcd34d; /* Brighter yellow for dark background */
+    color: #ef4444; /* Brighter red for dark background */
   }
 }
 
@@ -86,7 +86,7 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
 
 .status-normal { background-color: #ffffff; }
 .status-scrapped { background-color: #f3f4f6; color: #6b7280; }
-.status-managed { background-color: #fee2e2; border-color: #fecaca; }
+.status-managed { border-color: #fecaca; }
 
 .card-header {
   padding: 12px 16px;
@@ -125,7 +125,7 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
   }
   .status-normal { background-color: #1e293b; }
   .status-scrapped { background-color: #0f172a; border-color: #1e293b; color: #64748b; }
-  .status-managed { background-color: rgba(220, 38, 38, 0.2); border-color: #7f1d1d; }
+  .status-managed { border-color: #7f1d1d; }
   
   .card-details {
     border-top-color: rgba(255,255,255,0.1);
