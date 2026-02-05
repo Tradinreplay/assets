@@ -21,6 +21,9 @@
     scanDateTime: document.getElementById('scanDateTime'),
     scrapDateTime: document.getElementById('scrapDateTime'),
     scrapBy: document.getElementById('scrapBy'),
+    acquisitionYear: document.getElementById('acquisitionYear'),
+    custodian: document.getElementById('custodian'),
+    location: document.getElementById('location'),
     remarks: document.getElementById('remarks'),
     isScrapped: document.getElementById('isScrapped'),
     saveBtn: document.getElementById('saveBtn'),
@@ -89,6 +92,7 @@
     const {
       id, asset_number, device_name, serial_number, unit, is_managed,
       scan_date_time, scan_timestamp, is_scrapped, scrap_date_time, scrap_by, remarks,
+      acquisition_year, custodian, location,
       ...rest
     } = dbRecord;
 
@@ -105,6 +109,9 @@
       scrapDateTime: scrap_date_time,
       scrapBy: scrap_by,
       remarks: remarks,
+      acquisitionYear: acquisition_year,
+      custodian: custodian,
+      location: location,
       ...rest
     };
   }
@@ -113,6 +120,7 @@
     const {
       id, assetNumber, deviceName, serialNumber, unit, isManaged,
       scanDateTime, scanTimestamp, isScrapped, scrapDateTime, scrapBy, remarks,
+      acquisitionYear, custodian, location,
       ...rest
     } = r;
 
@@ -129,6 +137,9 @@
       scrap_date_time: scrapDateTime,
       scrap_by: scrapBy,
       remarks: remarks,
+      acquisition_year: acquisitionYear,
+      custodian: custodian,
+      location: location,
       updated_at: getTaipeiNow().toISOString().replace('Z', '+08:00'),
       ...rest
     };
@@ -388,6 +399,9 @@
     els.scanDateTime.value = '';
     if (els.scrapDateTime) els.scrapDateTime.value = '';
     if (els.scrapBy) els.scrapBy.value = '';
+    if (els.acquisitionYear) els.acquisitionYear.value = '';
+    if (els.custodian) els.custodian.value = '';
+    if (els.location) els.location.value = '';
     if (els.remarks) els.remarks.value = '';
     els.isScrapped.checked = false;
     els.editingId.value = '';
@@ -441,35 +455,15 @@
       return true;
     });
 
-    els.recordsTableBody.innerHTML = filtered.map(r => {
-      // Add red background if not scrapped (isScrapped is false/falsy)
-      const rowClass = !r.isScrapped ? 'class="not-scrapped"' : '';
-      
-      const assetNumClass = [];
-      if (r.isManaged) assetNumClass.push('asset-number-managed');
-      if (!r.isScrapped) assetNumClass.push('asset-number-bold');
-
-      return `<tr data-id="${r.id}" ${rowClass}>
-        <td class="${assetNumClass.join(' ')}">${escapeHtml(r.assetNumber)}</td>
-        <td>${escapeHtml(r.deviceName)}</td>
-        <td>${escapeHtml(r.serialNumber)}</td>
-        <td>${escapeHtml(r.unit)}</td>
-        <td>${r.isManaged ? '是' : '否'}</td>
-        <td>${escapeHtml(r.scanDateTime)}</td>
-        <td>${r.isScrapped ? '是' : '否'}</td>
-        <td>${escapeHtml(r.scrapDateTime)}</td>
-        <td>${escapeHtml(r.scrapBy)}</td>
-        <td>${escapeHtml(r.remarks)}</td>
-        <td>
-          <button class="action-btn edit" data-action="edit">編輯</button>
-          <button class="action-btn delete" data-action="delete">刪除</button>
-        </td>
-      </tr>`;
-    }).join('');
-
     // Render Cards List
     els.recordsListContainer.innerHTML = filtered.map(r => {
-      const cardClass = !r.isScrapped ? 'record-card not-scrapped' : 'record-card';
+      // Color Logic
+      let statusClass = 'status-normal';
+      if (r.isScrapped) {
+        statusClass = 'status-scrapped';
+      } else if (r.isManaged) {
+        statusClass = 'status-managed';
+      }
       
       const labelMap = {
         assetNumber: '資產編號',
@@ -482,11 +476,14 @@
         scrapDateTime: '報廢時間',
         scrapBy: '報廢人',
         remarks: '備註',
+        acquisitionYear: '取得年限',
+        custodian: '保管人',
+        location: '設備位置',
         created_at: '建立時間',
         updated_at: '更新時間'
       };
 
-      const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy', 'remarks'];
+      const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'acquisitionYear', 'custodian', 'location', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy', 'remarks'];
       const allKeys = Object.keys(r);
       const otherKeys = allKeys.filter(k => !knownOrder.includes(k) && k !== 'id' && k !== 'scanTimestamp' && k !== 'created_at' && k !== 'updated_at');
       const sortedKeys = [...knownOrder, ...otherKeys];
@@ -494,14 +491,12 @@
       let rowsHtml = '';
       sortedKeys.forEach(key => {
         const val = r[key];
-        // Hide internal or empty fields
         if (key === 'id' || key === 'scanTimestamp' || key === 'created_at' || key === 'updated_at') return;
         if (val === null || val === undefined || val === '') return;
 
         let displayVal = escapeHtml(String(val));
         const label = labelMap[key] || key;
 
-        // Special formatting
         if (key === 'isManaged') {
              displayVal = val ? '<span class="tag tag-managed">是</span>' : '否';
         } else if (key === 'isScrapped') {
@@ -510,24 +505,26 @@
              displayVal = val ? '是' : '否';
         }
 
-        // Highlight Asset Number
-        const valueClass = (key === 'assetNumber' && r.isManaged) ? 'asset-number-managed' : '';
-        const style = (key === 'assetNumber') ? 'font-weight: bold; font-size: 1.1em;' : '';
-
         rowsHtml += `
           <div class="card-row">
             <span class="card-label">${escapeHtml(label)}</span>
-            <span class="card-value ${valueClass}" style="${style}">${displayVal}</span>
+            <span class="card-value">${displayVal}</span>
           </div>
         `;
       });
 
       return `
-        <div class="${cardClass}" data-id="${r.id}">
-          ${rowsHtml}
-          <div class="card-actions">
-            <button class="action-btn edit" data-action="edit">編輯</button>
-            <button class="action-btn delete" data-action="delete">刪除</button>
+        <div class="record-card ${statusClass}" data-id="${r.id}" onclick="this.classList.toggle('expanded')">
+          <div class="card-header">
+            <span class="header-title">${escapeHtml(r.assetNumber)}</span>
+            <span class="header-unit">${escapeHtml(r.unit)}</span>
+          </div>
+          <div class="card-details">
+            ${rowsHtml}
+            <div class="card-actions">
+              <button class="action-btn edit" data-action="edit" onclick="event.stopPropagation()">編輯</button>
+              <button class="action-btn delete" data-action="delete" onclick="event.stopPropagation()">刪除</button>
+            </div>
           </div>
         </div>
       `;
@@ -560,6 +557,9 @@
       els.scanDateTime.value = rec.scanDateTime || '';
       if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
       if (els.scrapBy) els.scrapBy.value = rec.scrapBy || '';
+      if (els.acquisitionYear) els.acquisitionYear.value = rec.acquisitionYear || '';
+      if (els.custodian) els.custodian.value = rec.custodian || '';
+      if (els.location) els.location.value = rec.location || '';
       if (els.remarks) els.remarks.value = rec.remarks || '';
       els.isScrapped.checked = !!rec.isScrapped;
       els.editingId.value = rec.id;

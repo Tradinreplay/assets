@@ -74,29 +74,73 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 10px;
   margin-bottom: 8px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
 }
 
-.record-card.not-scrapped {
-  background-color: #fee2e2;
-  border-color: #fecaca;
+.record-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.status-normal { background-color: #ffffff; }
+.status-scrapped { background-color: #f3f4f6; color: #6b7280; }
+.status-managed { background-color: #fee2e2; border-color: #fecaca; }
+
+.card-header {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.header-unit {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.card-details {
+  display: none;
+  padding: 12px 16px;
+  border-top: 1px dashed rgba(0,0,0,0.1);
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-card.expanded .card-details {
+  display: flex;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .record-card {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  .status-normal { background-color: #1e293b; }
+  .status-scrapped { background-color: #0f172a; border-color: #1e293b; color: #64748b; }
+  .status-managed { background-color: rgba(220, 38, 38, 0.2); border-color: #7f1d1d; }
+  
+  .card-details {
+    border-top-color: rgba(255,255,255,0.1);
+  }
 }
 
 .card-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px dashed #f0f0f0;
   padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(0,0,0,0.05);
 }
-.card-row:last-child {
+.card-row:last-of-type {
   border-bottom: none;
-  padding-bottom: 0;
 }
 
 .card-label {
@@ -132,14 +176,7 @@ input[type="text"], input[type="date"], select { padding: 4px 6px; border: 1px s
 .tag-active { background: #dc2626; }
 
 @media (prefers-color-scheme: dark) {
-  .record-card {
-    background: #1e293b;
-    border-color: #334155;
-  }
-  .record-card.not-scrapped {
-    background-color: rgba(220, 38, 38, 0.2);
-    border-color: #7f1d1d;
-  }
+  /* .record-card background handled above */
   .card-label { color: #94a3b8; }
   .card-row { border-bottom-color: #334155; }
   .card-actions { border-top-color: #334155; }
