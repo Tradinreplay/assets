@@ -514,7 +514,7 @@
       });
 
       return `
-        <div class="record-card ${statusClass}" data-id="${r.id}" onclick="this.classList.toggle('expanded')">
+        <div class="record-card ${statusClass}" data-id="${r.id}">
           <div class="card-header">
             <span class="header-title">${escapeHtml(r.assetNumber)}</span>
             <span class="header-unit">${escapeHtml(r.unit)}</span>
@@ -522,8 +522,8 @@
           <div class="card-details">
             ${rowsHtml}
             <div class="card-actions">
-              <button class="action-btn edit" data-action="edit" onclick="event.stopPropagation()">編輯</button>
-              <button class="action-btn delete" data-action="delete" onclick="event.stopPropagation()">刪除</button>
+              <button class="action-btn edit" data-action="edit">編輯</button>
+              <button class="action-btn delete" data-action="delete">刪除</button>
             </div>
           </div>
         </div>
@@ -539,53 +539,60 @@
 
   async function handleTableClick(ev) {
     const btn = ev.target.closest('button');
-    if (!btn) return;
-    // Check if click came from table tr or card div
-    const container = ev.target.closest('tr') || ev.target.closest('.record-card');
-    const id = container?.dataset?.id;
-    if (!id) return;
-    const action = btn.dataset.action;
-    
-    if (action === 'edit') {
-      const rec = getRecords().find(r => r.id === id);
-      if (!rec) return;
-      els.assetNumber.value = rec.assetNumber || '';
-      els.deviceName.value = rec.deviceName || '';
-      els.serialNumber.value = rec.serialNumber || '';
-      els.unit.value = rec.unit || '';
-      els.isManaged.checked = !!rec.isManaged;
-      els.scanDateTime.value = rec.scanDateTime || '';
-      if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
-      if (els.scrapBy) els.scrapBy.value = rec.scrapBy || '';
-      if (els.acquisitionYear) els.acquisitionYear.value = rec.acquisitionYear || '';
-      if (els.custodian) els.custodian.value = rec.custodian || '';
-      if (els.location) els.location.value = rec.location || '';
-      if (els.remarks) els.remarks.value = rec.remarks || '';
-      els.isScrapped.checked = !!rec.isScrapped;
-      els.editingId.value = rec.id;
-      setStatus('已載入紀錄至表單，可編修後保存');
-      navigateToApp('manual'); // Switch to manual view (Form)
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (action === 'delete') {
-      // Admin check
-      if (!checkAdmin()) return;
+    const card = ev.target.closest('.record-card');
 
-      if (!confirm('確定刪除這筆紀錄？')) return;
-      
-      setStatus('刪除中...');
-      const { error } = await supabase.from('asset_records').delete().eq('id', id);
-      
-      if (error) {
-          console.error(error);
-          alert('刪除失敗');
-          setStatus('刪除失敗');
-          return;
+    if (btn) {
+      const action = btn.dataset.action;
+      const container = card || ev.target.closest('tr');
+      const id = container?.dataset?.id;
+      if (!id) return;
+
+      if (action === 'edit') {
+        const rec = getRecords().find(r => r.id === id);
+        if (!rec) return;
+        els.assetNumber.value = rec.assetNumber || '';
+        els.deviceName.value = rec.deviceName || '';
+        els.serialNumber.value = rec.serialNumber || '';
+        els.unit.value = rec.unit || '';
+        els.isManaged.checked = !!rec.isManaged;
+        els.scanDateTime.value = rec.scanDateTime || '';
+        if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
+        if (els.scrapBy) els.scrapBy.value = rec.scrapBy || '';
+        if (els.acquisitionYear) els.acquisitionYear.value = rec.acquisitionYear || '';
+        if (els.custodian) els.custodian.value = rec.custodian || '';
+        if (els.location) els.location.value = rec.location || '';
+        if (els.remarks) els.remarks.value = rec.remarks || '';
+        els.isScrapped.checked = !!rec.isScrapped;
+        els.editingId.value = rec.id;
+        setStatus('已載入紀錄至表單，可編修後保存');
+        navigateToApp('manual'); // Switch to manual view (Form)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (action === 'delete') {
+        // Admin check
+        if (!checkAdmin()) return;
+
+        if (!confirm('確定刪除這筆紀錄？')) return;
+        
+        setStatus('刪除中...');
+        const { error } = await supabase.from('asset_records').delete().eq('id', id);
+        
+        if (error) {
+            console.error(error);
+            alert('刪除失敗');
+            setStatus('刪除失敗');
+            return;
+        }
+
+        // Update local state
+        localRecords = localRecords.filter(r => r.id !== id);
+        renderRecords(els.searchInput.value);
+        setStatus('紀錄已刪除');
       }
+      return;
+    }
 
-      // Update local state
-      localRecords = localRecords.filter(r => r.id !== id);
-      renderRecords(els.searchInput.value);
-      setStatus('紀錄已刪除');
+    if (card) {
+      card.classList.toggle('expanded');
     }
   }
 
