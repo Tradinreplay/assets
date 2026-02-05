@@ -605,6 +605,9 @@
         ? (els.scrapDateTime?.value?.trim() || formatDateTime(new Date()))
         : ''),
       scrapBy: (els.isScrapped.checked ? (els.scrapBy?.value?.trim() || '') : ''),
+      acquisitionYear: els.acquisitionYear?.value?.trim() || '',
+      custodian: els.custodian?.value?.trim() || '',
+      location: els.location?.value?.trim() || '',
       remarks: els.remarks?.value?.trim() || '',
     };
 
@@ -669,6 +672,9 @@
       '完成報廢': r.isScrapped ? '是' : '否',
       '報廢日期時間': r.scrapDateTime || '',
       '報廢人': r.scrapBy || '',
+      '取得年限': r.acquisitionYear || '',
+      '保管人': r.custodian || '',
+      '設備位置': r.location || '',
       '備註': r.remarks || '',
     }));
     const wb = XLSX.utils.book_new();
@@ -708,8 +714,11 @@
     const scrapDateTime = scrapDateTimeRaw || '';
     const scrapByRaw = String(row['報廢人'] ?? row['scrapBy'] ?? row['Scrapped By'] ?? row['Disposed By'] ?? '').trim();
     const scrapBy = scrapByRaw || '';
+    const acquisitionYear = String(row['取得年限'] ?? row['acquisitionYear'] ?? row['Acquisition Year'] ?? '').trim();
+    const custodian = String(row['保管人'] ?? row['custodian'] ?? row['Custodian'] ?? '').trim();
+    const location = String(row['設備位置'] ?? row['location'] ?? row['Location'] ?? '').trim();
     const remarks = String(row['備註'] ?? row['remarks'] ?? row['Remarks'] ?? row['comment'] ?? row['note'] ?? '').trim();
-    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime, scrapDateTime, scrapBy, remarks };
+    const rec = { assetNumber, deviceName, serialNumber, unit, isManaged, isScrapped, scanDateTime, scrapDateTime, scrapBy, acquisitionYear, custodian, location, remarks };
     rec.scanTimestamp = deriveTimestamp(scanDateTime);
     return rec;
   }
@@ -761,6 +770,9 @@
               deviceName: rec.deviceName || keep.deviceName,
               serialNumber: rec.serialNumber || keep.serialNumber,
               unit: rec.unit || keep.unit,
+              acquisitionYear: rec.acquisitionYear || keep.acquisitionYear,
+              custodian: rec.custodian || keep.custodian,
+              location: rec.location || keep.location,
               isManaged: typeof rec.isManaged === 'boolean' ? rec.isManaged : keep.isManaged,
               scanDateTime: rec.scanDateTime || keep.scanDateTime,
               scanTimestamp: typeof rec.scanTimestamp === 'number' ? rec.scanTimestamp : (keep.scanTimestamp ?? deriveTimestamp(rec.scanDateTime || keep.scanDateTime)),
