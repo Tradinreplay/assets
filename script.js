@@ -50,6 +50,8 @@
     btnAutoScan: document.getElementById('btn-auto-scan'),
     btnManualInput: document.getElementById('btn-manual-input'),
     btnRecords: document.getElementById('btn-records'),
+    searchBtn: document.getElementById('searchBtn'),
+    backToTopBtn: document.getElementById('backToTopBtn'),
   };
 
   let localRecords = [];
@@ -179,7 +181,9 @@
     
     if (data) {
       localRecords = data.map(toLocalRecord);
-      renderRecords(els.searchInput.value);
+      // Don't auto-render on load. Show prompt instead.
+      // renderRecords(els.searchInput.value);
+      els.recordsListContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">請輸入搜尋條件並點擊「查詢」按鈕</div>';
     }
   }
 
@@ -454,8 +458,34 @@
       return true;
     });
 
+    // Calculate Summary
+    const summaryEl = document.getElementById('search-summary');
+    if (summaryEl) {
+        const totalCount = filtered.length;
+        let managedCount = 0;
+        let scrappedCount = 0;
+        
+        for (const r of filtered) {
+             if (r.isManaged) managedCount++;
+             if (r.isScrapped) scrappedCount++;
+        }
+        
+        const nonManagedCount = totalCount - managedCount;
+
+        summaryEl.style.display = 'flex';
+        summaryEl.innerHTML = `
+           <span>總筆數: ${totalCount}</span>
+           <span>列管: ${managedCount}</span>
+           <span>非列管: ${nonManagedCount}</span>
+           <span>已報廢: ${scrappedCount}</span>
+        `;
+    }
+
     // Render Cards List
-    els.recordsListContainer.innerHTML = filtered.map(r => {
+    if (filtered.length === 0) {
+      els.recordsListContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">查無符合資料</div>';
+    } else {
+      els.recordsListContainer.innerHTML = filtered.map(r => {
       // Color Logic
       let statusClass = 'status-normal';
       if (r.isScrapped) {
@@ -530,6 +560,7 @@
         </div>
       `;
     }).join('');
+    }
   }
 
   function escapeHtml(str) {
@@ -857,6 +888,10 @@
     } else if (mode === 'records') {
       els.sectionRecords.style.display = 'block';
       stopCamera();
+      // Clear previous search results on entry
+      els.recordsListContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">請輸入搜尋條件並點擊「查詢」按鈕</div>';
+      const summaryEl = document.getElementById('search-summary');
+      if (summaryEl) summaryEl.style.display = 'none';
     }
   }
 
@@ -888,12 +923,18 @@
   els.resetBtn.addEventListener('click', resetForm);
   els.modifyModeBtn.addEventListener('click', toggleModifyMode);
   els.saveBtn.addEventListener('click', onSave);
-  els.searchInput.addEventListener('input', () => renderRecords(els.searchInput.value));
-  if (els.startDateFilter) els.startDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
-  if (els.endDateFilter) els.endDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
-  if (els.unitFilter) els.unitFilter.addEventListener('input', () => renderRecords(els.searchInput.value));
-  if (els.isScrappedFilter) els.isScrappedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
-  if (els.isManagedFilter) els.isManagedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
+  // els.searchInput.addEventListener('input', () => renderRecords(els.searchInput.value));
+  els.searchInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') renderRecords(els.searchInput.value); });
+  if (els.searchBtn) els.searchBtn.addEventListener('click', () => renderRecords(els.searchInput.value));
+  
+  // if (els.startDateFilter) els.startDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
+  // if (els.endDateFilter) els.endDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
+  // if (els.unitFilter) els.unitFilter.addEventListener('input', () => renderRecords(els.searchInput.value));
+  // if (els.isScrappedFilter) els.isScrappedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
+  // if (els.isManagedFilter) els.isManagedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
+  
+  if (els.unitFilter) els.unitFilter.addEventListener('keydown', (e) => { if(e.key === 'Enter') renderRecords(els.searchInput.value); });
+
   els.assetNumber.addEventListener('input', () => {
     const num = els.assetNumber.value.trim();
     if (!num) {
@@ -909,6 +950,27 @@
   document.getElementById('recordsTable').addEventListener('click', handleTableClick);
   els.exportBtn.addEventListener('click', exportToExcel);
   if (els.importBtn) els.importBtn.addEventListener('click', onImport);
+
+  // Back to Top
+  if (els.backToTopBtn) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        els.backToTopBtn.classList.add('visible');
+        els.backToTopBtn.style.display = 'flex';
+      } else {
+        els.backToTopBtn.classList.remove('visible');
+        // Delay hiding to allow transition
+        setTimeout(() => { 
+          if(!els.backToTopBtn.classList.contains('visible')) {
+             els.backToTopBtn.style.display = 'none'; 
+          }
+        }, 300);
+      }
+    });
+    els.backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 
   if (document.getElementById('refreshBtn')) {
     document.getElementById('refreshBtn').addEventListener('click', async () => {
