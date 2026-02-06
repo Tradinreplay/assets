@@ -149,6 +149,7 @@
           <option value="true">是</option>
           <option value="false">否</option>
         </select>
+        <button id="searchBtn">查詢</button>
         <button id="exportBtn">匯出Excel</button>
         <input type="file" id="importExcel" accept=".xlsx,.xls,.csv" />
         <label class="inline"><input type="radio" name="importMode" value="merge" checked /> 合併匯入</label>
@@ -156,6 +157,7 @@
         <button id="importBtn">匯入</button>
         <button id="refreshBtn" class="refresh-btn">重新整理</button>
       </div>
+      <div id="search-summary" class="search-summary" style="display:none;"></div>
       <div id="records-list-container" class="records-list"></div>
       <div class="table-wrap" style="display: none;">
         <table id="recordsTable">
@@ -184,6 +186,8 @@
   <footer>
     <small>資料儲存於雲端。</small>
   </footer>
+
+  <button id="backToTopBtn" class="back-to-top" title="回頂端">⬆</button>
 
   <script src="script.js"></script>
 </body>
