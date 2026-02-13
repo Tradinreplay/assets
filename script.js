@@ -742,6 +742,12 @@
     }
 
     if (card) {
+      // Auto-collapse other expanded cards
+      const allExpanded = document.querySelectorAll('.record-card.expanded');
+      allExpanded.forEach(c => {
+        if (c !== card) c.classList.remove('expanded');
+      });
+      
       card.classList.toggle('expanded');
     }
   }
