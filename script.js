@@ -552,7 +552,7 @@
       return `
         <div class="record-card ${statusClass}" data-id="${r.id}">
           <div class="card-header">
-            <span class="${titleClass}">${escapeHtml(r.assetNumber)}</span>
+            <span class="${titleClass} asset-number-link" data-action="view-details" title="點擊查看詳情">${escapeHtml(r.assetNumber)}</span>
             <span class="header-unit">${escapeHtml(r.unit)}</span>
           </div>
           <div class="card-details">
@@ -568,6 +568,105 @@
     }
   }
 
+  // --- Modal Logic ---
+  const modal = {
+    overlay: document.getElementById('recordModal'),
+    title: document.getElementById('modalTitle'),
+    content: document.getElementById('modalContent'),
+    footer: document.getElementById('modalFooter'),
+    closeBtn: document.getElementById('modalCloseBtn')
+  };
+
+  function openModal(record) {
+    if (!record) return;
+    
+    // Populate Title
+    modal.title.textContent = `${record.assetNumber} - 詳細資料`;
+
+    // Populate Content (Reuse render logic slightly modified)
+    const labelMap = {
+        assetNumber: '資產編號',
+        deviceName: '設備名稱',
+        serialNumber: '機身編號',
+        unit: '單位',
+        isManaged: '列管資產',
+        scanDateTime: '掃描時間',
+        isScrapped: '完成報廢',
+        scrapDateTime: '報廢時間',
+        scrapBy: '報廢人',
+        remarks: '備註',
+        acquisitionYear: '取得年限',
+        custodian: '保管人',
+        location: '設備位置',
+        created_at: '建立時間',
+        updated_at: '更新時間'
+    };
+
+    const knownOrder = ['assetNumber', 'deviceName', 'serialNumber', 'unit', 'acquisitionYear', 'custodian', 'location', 'isManaged', 'scanDateTime', 'isScrapped', 'scrapDateTime', 'scrapBy', 'remarks'];
+    const allKeys = Object.keys(record);
+    const otherKeys = allKeys.filter(k => !knownOrder.includes(k) && k !== 'id' && k !== 'scanTimestamp' && k !== 'created_at' && k !== 'updated_at');
+    const sortedKeys = [...knownOrder, ...otherKeys];
+
+    let rowsHtml = '';
+    sortedKeys.forEach(key => {
+        const val = record[key];
+        if (key === 'id' || key === 'scanTimestamp' || key === 'created_at' || key === 'updated_at') return;
+        if (val === null || val === undefined || val === '') return;
+
+        let displayVal = escapeHtml(String(val));
+        const label = labelMap[key] || key;
+
+        if (key === 'isManaged') {
+             displayVal = val ? '<span class="tag tag-managed">是</span>' : '否';
+        } else if (key === 'isScrapped') {
+             displayVal = val ? '<span class="tag tag-scrapped">是</span>' : '否';
+        } else if (typeof val === 'boolean') {
+             displayVal = val ? '是' : '否';
+        }
+
+        rowsHtml += `
+          <div class="card-row" style="width: 100%; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color);">
+            <span class="card-label">${escapeHtml(label)}</span>
+            <span class="card-value">${displayVal}</span>
+          </div>
+        `;
+    });
+    
+    modal.content.innerHTML = rowsHtml;
+    
+    // Populate Footer Actions
+    modal.footer.innerHTML = `
+      <button class="action-btn edit" id="modalEditBtn">編輯</button>
+      <button class="action-btn delete" id="modalDeleteBtn">刪除</button>
+    `;
+
+    // Attach events to new buttons
+    document.getElementById('modalEditBtn').onclick = () => {
+        closeModal();
+        handleEdit(record.id);
+    };
+    document.getElementById('modalDeleteBtn').onclick = () => {
+        closeModal();
+        handleDelete(record.id);
+    };
+
+    // Show Modal
+    modal.overlay.classList.add('open');
+  }
+
+  function closeModal() {
+    modal.overlay.classList.remove('open');
+  }
+
+  if (modal.closeBtn) {
+    modal.closeBtn.addEventListener('click', closeModal);
+  }
+  if (modal.overlay) {
+    modal.overlay.addEventListener('click', (e) => {
+        if (e.target === modal.overlay) closeModal();
+    });
+  }
+
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, s => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -575,6 +674,20 @@
   }
 
   async function handleTableClick(ev) {
+    // Check if clicked on Asset Number Link
+    if (ev.target.classList.contains('asset-number-link') || ev.target.closest('.asset-number-link')) {
+        ev.stopPropagation(); // Prevent card expansion if any
+        const card = ev.target.closest('.record-card');
+        if (card) {
+            const id = Number(card.dataset.id);
+            const record = localRecords.find(r => r.id === id);
+            if (record) {
+                openModal(record);
+            }
+        }
+        return;
+    }
+
     const btn = ev.target.closest('button');
     const card = ev.target.closest('.record-card');
 
