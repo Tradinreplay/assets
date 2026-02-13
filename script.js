@@ -48,6 +48,7 @@
     sectionCamera: document.getElementById('section-camera'),
     sectionForm: document.getElementById('section-form'),
     sectionRecords: document.getElementById('section-records'),
+    preview: document.querySelector('.preview'), // Added preview container
     btnAutoScan: document.getElementById('btn-auto-scan'),
     btnManualInput: document.getElementById('btn-manual-input'),
     btnRecords: document.getElementById('btn-records'),
@@ -261,6 +262,7 @@
   }
 
   async function startCamera() {
+    if (els.preview) els.preview.style.display = 'block'; // Ensure preview is visible
     stopCamera();
 
     // Constraints for rear camera
@@ -416,6 +418,12 @@
   function onFileSelected(ev) {
     const file = ev.target.files && ev.target.files[0];
     if (!file) return;
+
+    // Hide preview to save space
+    if (els.preview) els.preview.style.display = 'none';
+    stopCamera();
+    setStatus('載入圖片中...');
+
     const reader = new FileReader();
     reader.onload = () => {
       const img = new Image();
