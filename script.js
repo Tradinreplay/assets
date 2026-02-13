@@ -52,6 +52,11 @@
     btnRecords: document.getElementById('btn-records'),
     searchBtn: document.getElementById('searchBtn'),
     backToTopBtn: document.getElementById('backToTopBtn'),
+    searchBtn: document.getElementById('searchBtn'),
+    sectionSearchResults: document.getElementById('section-search-results'),
+    backToQueryBtn: document.getElementById('backToQueryBtn'),
+    resultsBackToTopBtn: document.getElementById('resultsBackToTopBtn'),
+    recordsListWrapper: document.getElementById('records-list-scroll-area'),
   };
 
   let localRecords = [];
@@ -877,6 +882,7 @@
     els.sectionCamera.style.display = 'none';
     els.sectionForm.style.display = 'none';
     els.sectionRecords.style.display = 'none';
+    if (els.sectionSearchResults) els.sectionSearchResults.style.display = 'none';
 
     if (mode === 'auto') {
       els.sectionCamera.style.display = 'block';
@@ -892,6 +898,9 @@
       els.recordsListContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">請輸入搜尋條件並點擊「查詢」按鈕</div>';
       const summaryEl = document.getElementById('search-summary');
       if (summaryEl) summaryEl.style.display = 'none';
+    } else if (mode === 'search-results') {
+      els.sectionSearchResults.style.display = 'block';
+      stopCamera();
     }
   }
 
@@ -924,8 +933,42 @@
   els.modifyModeBtn.addEventListener('click', toggleModifyMode);
   els.saveBtn.addEventListener('click', onSave);
   // els.searchInput.addEventListener('input', () => renderRecords(els.searchInput.value));
-  els.searchInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') renderRecords(els.searchInput.value); });
-  if (els.searchBtn) els.searchBtn.addEventListener('click', () => renderRecords(els.searchInput.value));
+  els.searchInput.addEventListener('keydown', (e) => { 
+    if(e.key === 'Enter') {
+      renderRecords(els.searchInput.value);
+      navigateToApp('search-results');
+    }
+  });
+  if (els.searchBtn) els.searchBtn.addEventListener('click', () => {
+    renderRecords(els.searchInput.value);
+    navigateToApp('search-results');
+  });
+  
+  if (els.backToQueryBtn) {
+    els.backToQueryBtn.addEventListener('click', () => {
+      navigateToApp('records');
+    });
+  }
+
+  // Results Back To Top
+  if (els.recordsListWrapper && els.resultsBackToTopBtn) {
+    els.recordsListWrapper.addEventListener('scroll', () => {
+      if (els.recordsListWrapper.scrollTop > 300) {
+        els.resultsBackToTopBtn.classList.add('visible');
+        els.resultsBackToTopBtn.style.display = 'flex';
+      } else {
+        els.resultsBackToTopBtn.classList.remove('visible');
+        setTimeout(() => { 
+          if(!els.resultsBackToTopBtn.classList.contains('visible')) {
+             els.resultsBackToTopBtn.style.display = 'none'; 
+          }
+        }, 300);
+      }
+    });
+    els.resultsBackToTopBtn.addEventListener('click', () => {
+      els.recordsListWrapper.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
   
   // if (els.startDateFilter) els.startDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
   // if (els.endDateFilter) els.endDateFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
@@ -933,7 +976,12 @@
   // if (els.isScrappedFilter) els.isScrappedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
   // if (els.isManagedFilter) els.isManagedFilter.addEventListener('change', () => renderRecords(els.searchInput.value));
   
-  if (els.unitFilter) els.unitFilter.addEventListener('keydown', (e) => { if(e.key === 'Enter') renderRecords(els.searchInput.value); });
+  if (els.unitFilter) els.unitFilter.addEventListener('keydown', (e) => { 
+    if(e.key === 'Enter') {
+      renderRecords(els.searchInput.value);
+      navigateToApp('search-results');
+    }
+  });
 
   els.assetNumber.addEventListener('input', () => {
     const num = els.assetNumber.value.trim();
