@@ -6,7 +6,8 @@
   const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
   // Admin Configuration
-  const ADMIN_PASSWORD = 'admin'; // Default password, change this if needed
+  const ADMIN_PASSWORD = '122232'; // Default password, change this if needed
+  let isAdminLoggedIn = false;
 
   const els = {
     imageInput: document.getElementById('imageInput'),
@@ -64,31 +65,82 @@
   let isModifyMode = false;
 
   // --- Helper: Admin Check ---
-  function checkAdmin() {
-    if (isModifyMode) return true;
-    const input = prompt('請輸入管理者密碼以繼續操作：');
-    if (input === ADMIN_PASSWORD) {
-      return true;
-    }
-    alert('密碼錯誤，操作已取消。');
-    return false;
+  function showLoginModal() {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('loginModal');
+      const passwordInput = document.getElementById('adminPasswordInput');
+      const confirmBtn = document.getElementById('loginConfirmBtn');
+      const cancelBtn = document.getElementById('loginCancelBtn');
+      const closeBtn = document.getElementById('loginCloseBtn');
+      const errorMsg = document.getElementById('loginErrorMsg');
+
+      // Reset state
+      passwordInput.value = '';
+      errorMsg.textContent = '';
+      modal.classList.add('open');
+      passwordInput.focus();
+
+      const handleLogin = () => {
+        const input = passwordInput.value;
+        if (input === ADMIN_PASSWORD) {
+          isAdminLoggedIn = true;
+          modal.classList.remove('open');
+          cleanup();
+          resolve(true);
+        } else {
+          errorMsg.textContent = '密碼錯誤';
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      };
+
+      const handleCancel = () => {
+        modal.classList.remove('open');
+        cleanup();
+        resolve(false);
+      };
+
+      const handleKeydown = (e) => {
+        if (e.key === 'Enter') {
+          handleLogin();
+        } else if (e.key === 'Escape') {
+          handleCancel();
+        }
+      };
+
+      const cleanup = () => {
+        confirmBtn.removeEventListener('click', handleLogin);
+        cancelBtn.removeEventListener('click', handleCancel);
+        closeBtn.removeEventListener('click', handleCancel);
+        passwordInput.removeEventListener('keydown', handleKeydown);
+      };
+
+      confirmBtn.addEventListener('click', handleLogin);
+      cancelBtn.addEventListener('click', handleCancel);
+      closeBtn.addEventListener('click', handleCancel);
+      passwordInput.addEventListener('keydown', handleKeydown);
+    });
   }
 
-  function toggleModifyMode() {
+  async function checkAdmin() {
+    if (isAdminLoggedIn) return true;
+    return await showLoginModal();
+  }
+
+  async function toggleModifyMode() {
     if (isModifyMode) {
       isModifyMode = false;
       els.modifyModeBtn.textContent = '進入修改模式';
       els.modifyModeBtn.style.backgroundColor = ''; // Reset style
       setStatus('已退出修改模式');
     } else {
-      const input = prompt('請輸入管理者密碼以進入修改模式：');
-      if (input === ADMIN_PASSWORD) {
+      if (await checkAdmin()) {
         isModifyMode = true;
         els.modifyModeBtn.textContent = '退出修改模式';
         els.modifyModeBtn.style.backgroundColor = '#d32f2f'; // Red to indicate active/danger
         setStatus('已進入修改模式');
       } else {
-        alert('密碼錯誤');
+        setStatus('取消進入修改模式');
       }
     }
   }
@@ -673,6 +725,53 @@
     })[s]);
   }
 
+  async function handleEdit(id) {
+    // Admin check for Edit
+    if (!await checkAdmin()) return;
+
+    const rec = getRecords().find(r => r.id == id); // Use loose equality for ID
+    if (!rec) return;
+    els.assetNumber.value = rec.assetNumber || '';
+    els.deviceName.value = rec.deviceName || '';
+    els.serialNumber.value = rec.serialNumber || '';
+    els.unit.value = rec.unit || '';
+    els.isManaged.checked = !!rec.isManaged;
+    els.scanDateTime.value = rec.scanDateTime || '';
+    if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
+    if (els.scrapBy) els.scrapBy.value = rec.scrapBy || '';
+    if (els.acquisitionYear) els.acquisitionYear.value = rec.acquisitionYear || '';
+    if (els.custodian) els.custodian.value = rec.custodian || '';
+    if (els.location) els.location.value = rec.location || '';
+    if (els.remarks) els.remarks.value = rec.remarks || '';
+    els.isScrapped.checked = !!rec.isScrapped;
+    els.editingId.value = rec.id;
+    setStatus('已載入紀錄至表單，可編修後保存');
+    navigateToApp('manual'); // Switch to manual view (Form)
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function handleDelete(id) {
+    // Admin check
+    if (!await checkAdmin()) return;
+
+    if (!confirm('確定刪除這筆紀錄？')) return;
+    
+    setStatus('刪除中...');
+    const { error } = await supabase.from('asset_records').delete().eq('id', id);
+    
+    if (error) {
+        console.error(error);
+        alert('刪除失敗');
+        setStatus('刪除失敗');
+        return;
+    }
+
+    // Update local state
+    localRecords = localRecords.filter(r => r.id != id); // Use loose equality for ID
+    renderRecords(els.searchInput.value);
+    setStatus('紀錄已刪除');
+  }
+
   async function handleTableClick(ev) {
     // Check if clicked on Asset Number Link
     if (ev.target.classList.contains('asset-number-link') || ev.target.closest('.asset-number-link')) {
@@ -698,45 +797,9 @@
       if (!id) return;
 
       if (action === 'edit') {
-        const rec = getRecords().find(r => r.id === id);
-        if (!rec) return;
-        els.assetNumber.value = rec.assetNumber || '';
-        els.deviceName.value = rec.deviceName || '';
-        els.serialNumber.value = rec.serialNumber || '';
-        els.unit.value = rec.unit || '';
-        els.isManaged.checked = !!rec.isManaged;
-        els.scanDateTime.value = rec.scanDateTime || '';
-        if (els.scrapDateTime) els.scrapDateTime.value = rec.scrapDateTime || '';
-        if (els.scrapBy) els.scrapBy.value = rec.scrapBy || '';
-        if (els.acquisitionYear) els.acquisitionYear.value = rec.acquisitionYear || '';
-        if (els.custodian) els.custodian.value = rec.custodian || '';
-        if (els.location) els.location.value = rec.location || '';
-        if (els.remarks) els.remarks.value = rec.remarks || '';
-        els.isScrapped.checked = !!rec.isScrapped;
-        els.editingId.value = rec.id;
-        setStatus('已載入紀錄至表單，可編修後保存');
-        navigateToApp('manual'); // Switch to manual view (Form)
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        handleEdit(id);
       } else if (action === 'delete') {
-        // Admin check
-        if (!checkAdmin()) return;
-
-        if (!confirm('確定刪除這筆紀錄？')) return;
-        
-        setStatus('刪除中...');
-        const { error } = await supabase.from('asset_records').delete().eq('id', id);
-        
-        if (error) {
-            console.error(error);
-            alert('刪除失敗');
-            setStatus('刪除失敗');
-            return;
-        }
-
-        // Update local state
-        localRecords = localRecords.filter(r => r.id !== id);
-        renderRecords(els.searchInput.value);
-        setStatus('紀錄已刪除');
+        handleDelete(id);
       }
       return;
     }
@@ -793,7 +856,7 @@
     }
 
     // Admin check before saving (creating or updating)
-    if (!checkAdmin()) return;
+    if (!await checkAdmin()) return;
 
     // Derive timestamp
     (function deriveScanTs() {
@@ -891,12 +954,12 @@
     return rec;
   }
 
-  function onImport() {
+  async function onImport() {
     const file = els.importExcel?.files?.[0];
     if (!file) { alert('請選擇Excel檔'); return; }
 
     // Admin check for Import
-    if (!checkAdmin()) return;
+    if (!await checkAdmin()) return;
 
     const mode = document.querySelector('input[name="importMode"]:checked')?.value || 'merge';
     const reader = new FileReader();

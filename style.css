@@ -577,6 +577,93 @@ label.inline {
   opacity: 0.8;
 }
 
+/* Login Modal Specific Styles */
+.login-container {
+  max-width: 320px; /* Compact width for mobile */
+  background-color: #1e293b; /* Dark theme background */
+  color: #f1f5f9;
+  border: 1px solid #334155;
+}
+
+.login-header {
+  background-color: #0f172a; /* Darker header */
+  border-bottom: 1px solid #334155;
+  padding: 0.75rem 1rem;
+}
+
+.login-header h3 {
+  color: #f1f5f9;
+  font-size: 1rem;
+}
+
+.login-body {
+  padding: 1.5rem 1rem;
+  background-color: #1e293b;
+}
+
+.login-form-group {
+  margin-bottom: 0.5rem;
+}
+
+#adminPasswordInput {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  color: white;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  box-sizing: border-box; /* Ensure padding doesn't affect width */
+}
+
+#adminPasswordInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.error-msg {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  min-height: 1.2em; /* Reserve space */
+}
+
+.login-footer {
+  background-color: #0f172a;
+  border-top: 1px solid #334155;
+  padding: 0.75rem 1rem;
+  justify-content: space-between; /* Spread buttons */
+}
+
+.login-footer .action-btn {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.1s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-footer .action-btn:active {
+  transform: scale(0.96); /* Press animation */
+  opacity: 0.9;
+}
+
+.login-footer .action-btn.primary {
+  background-color: var(--primary-color);
+  color: white;
+  margin-left: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.login-footer .action-btn.secondary {
+  background-color: #475569;
+  color: #e2e8f0;
+  margin-right: 0.5rem;
+}
+
 /* Ensure managed asset number stays red even when it is a link */
 .asset-number-link.asset-number-managed {
   color: #dc2626 !important; /* Force Red */
@@ -589,3 +676,4 @@ label.inline {
     text-decoration-color: #ef4444;
   }
 }
+

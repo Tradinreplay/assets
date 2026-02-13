@@ -217,6 +217,26 @@
     </div>
   </div>
 
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal-overlay" style="z-index: 3000;">
+    <div class="modal-container login-container">
+      <div class="modal-header login-header">
+        <h3>管理者登入</h3>
+        <button id="loginCloseBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body login-body">
+        <div class="login-form-group">
+          <input type="password" id="adminPasswordInput" placeholder="請輸入管理者密碼" />
+        </div>
+        <div id="loginErrorMsg" class="error-msg"></div>
+      </div>
+      <div class="modal-footer login-footer">
+        <button id="loginCancelBtn" class="action-btn secondary">取消</button>
+        <button id="loginConfirmBtn" class="action-btn primary">登入</button>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
