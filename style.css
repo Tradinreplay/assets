@@ -4,6 +4,7 @@
   --success-color: #10b981;
   --background-color: #f3f4f6;
   --card-bg: #ffffff;
+  --card-hover-bg: #f9fafb;
   --text-color: #1f2937;
   --border-color: #e5e7eb;
 }
@@ -15,6 +16,14 @@ body {
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* No Scroll Mode for Search Results */
+body.noscroll {
+  overflow: hidden;
+  height: 100vh;
+  position: fixed;
+  width: 100%;
 }
 
 header {
@@ -144,32 +153,36 @@ label.inline {
 .records-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem; /* Reduced gap */
 }
 
 .record-card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
-  padding: 0.75rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  padding: 0.5rem 0.75rem; /* Compact padding */
+  box-shadow: none; /* Removed shadow for flatter look */
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .record-card:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  background-color: var(--card-hover-bg);
 }
 
-.status-normal { background-color: #ffffff; }
+.record-card.expanded {
+  background-color: var(--card-hover-bg); /* Keep highlighted when expanded */
+}
+
+.status-normal { background-color: var(--card-bg); }
 .status-scrapped { background-color: #f3f4f6; color: #6b7280; }
-.status-managed { border-color: #fecaca; }
+.status-managed { /* Removed border-color */ }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0; /* Remove bottom margin when collapsed */
 }
 
 .header-title {
@@ -178,11 +191,11 @@ label.inline {
 }
 
 .header-unit {
-  font-size: 0.9rem;
   color: #6b7280;
   background-color: #f3f4f6;
-  padding: 0.1rem 0.4rem;
+  padding: 0.1rem 0.5rem;
   border-radius: 999px;
+  font-size: 0.85rem;
 }
 
 .card-details {
@@ -200,7 +213,6 @@ label.inline {
   display: flex;
   justify-content: space-between;
   padding: 0.25rem 0;
-  font-size: 0.9rem;
 }
 
 .card-label {
@@ -216,7 +228,6 @@ label.inline {
   display: inline-block;
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  font-size: 0.8rem;
 }
 .tag-managed { background-color: #fee2e2; color: #991b1b; }
 .tag-scrapped { background-color: #f3f4f6; color: #374151; }
@@ -230,7 +241,6 @@ label.inline {
 
 .action-btn {
   padding: 0.25rem 0.75rem;
-  font-size: 0.85rem;
   min-width: auto;
 }
 .action-btn.edit { background-color: #3b82f6; }
@@ -290,6 +300,7 @@ label.inline {
   :root {
     --background-color: #0f172a;
     --card-bg: #1e293b;
+    --card-hover-bg: #334155;
     --text-color: #f1f5f9;
     --border-color: #334155;
   }
@@ -313,9 +324,9 @@ label.inline {
     color: #ef4444; /* Brighter red for dark background */
   }
 
-  .status-normal { background-color: #1e293b; }
+  .status-normal { background-color: var(--card-bg); }
   .status-scrapped { background-color: #0f172a; border-color: #1e293b; color: #64748b; }
-  .status-managed { border-color: #7f1d1d; }
+  .status-managed { /* Removed border-color */ }
   
   .card-details {
     border-top-color: #334155;
@@ -404,7 +415,6 @@ label.inline {
 }
 
 .search-results-header h2 {
-  font-size: 1.1rem; /* Smaller title */
   margin: 0;
 }
 
@@ -414,7 +424,6 @@ label.inline {
   border: none;
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
-  font-size: 0.9rem;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -426,10 +435,10 @@ label.inline {
 }
 
 .search-summary {
-  font-size: 0.85rem; /* Smaller summary text */
   margin-bottom: 0.5rem;
   padding: 0 0.25rem;
   color: #6b7280;
+  font-weight: 500;
 }
 
 .results-frame {
@@ -453,19 +462,20 @@ label.inline {
 /* Mobile specific overrides for search results */
 @media (max-width: 600px) {
   /* Reduce main padding to allow full width usage */
-  main:has(#section-search-results[style*="block"]) {
+  main:has(#section-search-results[style*="flex"]) {
     padding: 0.5rem;
   }
   
   .search-results-card {
     padding: 0.5rem;
-    height: 85vh; 
+    height: calc(100dvh - 80px); /* Tweak height for better fit */
   }
 
   .results-frame {
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
     margin: 0; 
+    background-color: var(--card-bg); /* Ensure background */
   }
   
   .search-results-header {
@@ -565,4 +575,17 @@ label.inline {
 }
 .asset-number-link:hover {
   opacity: 0.8;
+}
+
+/* Ensure managed asset number stays red even when it is a link */
+.asset-number-link.asset-number-managed {
+  color: #dc2626 !important; /* Force Red */
+  text-decoration-color: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  .asset-number-link.asset-number-managed {
+    color: #ef4444 !important; /* Force Red Dark Mode */
+    text-decoration-color: #ef4444;
+  }
 }

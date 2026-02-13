@@ -1012,7 +1012,7 @@
       const summaryEl = document.getElementById('search-summary');
       if (summaryEl) summaryEl.style.display = 'none';
     } else if (mode === 'search-results') {
-      els.sectionSearchResults.style.display = 'block';
+      els.sectionSearchResults.style.display = 'flex';
       stopCamera();
     }
   }
